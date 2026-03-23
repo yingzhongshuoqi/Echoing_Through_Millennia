@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from .emotion_models import DialoguePhase
+from typing import TYPE_CHECKING
+
+from .emotion_models import DialoguePhase, IntensityLevel
+
+if TYPE_CHECKING:
+    from .emotion_models import EmotionResult
 
 
 PHASE_STRATEGIES: dict[DialoguePhase, str] = {
@@ -43,8 +48,77 @@ PHASE_STRATEGIES: dict[DialoguePhase, str] = {
 }
 
 
-def get_phase_instruction(phase: DialoguePhase) -> str:
-    return PHASE_STRATEGIES.get(phase, PHASE_STRATEGIES[DialoguePhase.LISTENING])
+# ── Dyad → 专属引导映射 ──
+
+_DYAD_GUIDANCE: dict[str, str] = {
+    "remorse":        "用户可能有悔恨情绪（悲伤+厌恶），帮助其接纳过去，而非自我谴责。",
+    "despair":        "用户可能感到绝望（恐惧+悲伤），先肯定其面对困境的勇气，再引入希望的光。",
+    "anxiety":        "用户可能感到焦虑（期待+恐惧），帮助其关注当下，而非未来的不确定性。",
+    "guilt":          "用户可能有内疚感（快乐+恐惧），帮助其区分合理的责任与过度的自责。",
+    "envy":           "用户可能有嫉妒情绪（悲伤+愤怒），帮助其看到自身独特的价值。",
+    "love":           "用户体验着爱的情感（快乐+信任），引导其珍惜和表达这份美好。",
+    "pride":          "用户可能感到自豪（愤怒+快乐），肯定其成就，同时引导温和的反思。",
+    "hope":           "用户怀有希望（期待+信任），强化这种积极力量，帮助其看到前行的路。",
+    "optimism":       "用户展现出乐观（期待+快乐），与之共鸣，帮助其将乐观化为行动力。",
+    "submission":     "用户可能有顺从倾向（信任+恐惧），帮助其在信任他人的同时保持自我。",
+    "awe":            "用户感到敬畏（恐惧+惊讶），帮助其将这种体验转化为内在力量。",
+    "disapproval":    "用户可能感到不认同（惊讶+悲伤），帮助其表达和理解这种感受。",
+    "contempt":       "用户可能有鄙视情绪（厌恶+愤怒），引导其理解情绪背后的真正需求。",
+    "aggressiveness": "用户可能有好斗倾向（愤怒+期待），帮助其将这股力量转化为建设性行动。",
+    "curiosity":      "用户展现出好奇心（信任+惊讶），鼓励其探索和发现。",
+    "cynicism":       "用户可能有愤世嫉俗倾向（厌恶+期待），帮助其重新看到世界的美好面。",
+    "delight":        "用户感到欣喜（快乐+惊讶），与之共享这份惊喜，深化正面体验。",
+    "sentimentality": "用户可能有感伤情绪（信任+悲伤），帮助其珍视回忆中的温暖。",
+    "shame":          "用户可能感到羞耻（恐惧+厌恶），帮助其接纳不完美的自己。",
+    "outrage":        "用户可能感到义愤（惊讶+愤怒），帮助其将正义感转化为正面力量。",
+    "pessimism":      "用户可能有悲观倾向（悲伤+期待），帮助其在期待中找到平衡。",
+    "dominance":      "用户可能有支配需求（愤怒+信任），帮助其在掌控与信任之间找到平衡。",
+    "morbidness":     "用户可能有矛盾的情感体验（厌恶+快乐），帮助其理解复杂情绪。",
+    "unbelief":       "用户可能感到难以置信（惊讶+厌恶），帮助其接受现实并找到应对方式。",
+}
+
+
+def get_phase_instruction(
+    phase: DialoguePhase,
+    emotion: EmotionResult | None = None,
+) -> str:
+    """获取阶段策略指令，可选地根据情绪状态附加细化指引。"""
+    base = PHASE_STRATEGIES.get(phase, PHASE_STRATEGIES[DialoguePhase.LISTENING])
+
+    if emotion is None:
+        return base
+
+    supplements: list[str] = []
+
+    # ── 强度敏感 ──
+    if emotion.intensity_level == IntensityLevel.INTENSE:
+        supplements.append(
+            "【注意】用户情绪非常强烈，请格外温柔谨慎，先充分共情和陪伴，不要急于引导或给建议。"
+        )
+    elif emotion.intensity_level == IntensityLevel.MILD:
+        supplements.append(
+            "【注意】用户情绪较为平和，可以适度深入探讨或引导反思。"
+        )
+
+    # ── Dyad 感知 ──
+    for dyad in emotion.active_dyads[:2]:
+        name_en = dyad.get("name_en", "")
+        guidance = _DYAD_GUIDANCE.get(name_en)
+        if guidance:
+            supplements.append(guidance)
+
+    # ── 对立冲突 ──
+    for tension in emotion.opposite_tensions[:1]:
+        pair = tension.get("pair", [])
+        if len(pair) == 2:
+            supplements.append(
+                f"用户在「{pair[0]}」和「{pair[1]}」之间存在情感矛盾，"
+                f"需要帮助其理解和整合这种复杂的内在冲突。"
+            )
+
+    if supplements:
+        return base + "\n" + "\n".join(supplements)
+    return base
 
 
 DIALOGUE_STYLE_INSTRUCTIONS: dict[str, str] = {

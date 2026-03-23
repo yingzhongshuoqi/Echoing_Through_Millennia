@@ -376,6 +376,12 @@ function readFileAsDataUrl(file) {
     });
 }
 
+// Plutchik 标准色谱
+const PLUTCHIK_COLORS = {
+    joy: "#FFEB3B", trust: "#8BC34A", fear: "#4CAF50", surprise: "#00BCD4",
+    sadness: "#2196F3", disgust: "#9C27B0", anger: "#F44336", anticipation: "#FF9800",
+};
+
 function _renderRelicEmotionCard(messageId, emotion, relic) {
     if (!messageId) return;
     const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
@@ -385,22 +391,72 @@ function _renderRelicEmotionCard(messageId, emotion, relic) {
     container.className = "relic-emotion-container";
 
     if (emotion) {
-        const badge = document.createElement("span");
-        badge.className = "emotion-badge";
-        const intensity = emotion.intensity || 5;
-        badge.textContent = `${emotion.primary || "平静"}${emotion.secondary ? " · " + emotion.secondary : ""} (${intensity}/10)`;
-        badge.title = emotion.need ? `需求: ${emotion.need}` : "";
-        if (intensity >= 7) badge.classList.add("emotion-high");
-        else if (intensity >= 4) badge.classList.add("emotion-mid");
-        else badge.classList.add("emotion-low");
-        container.appendChild(badge);
+        // ── Plutchik 主导情绪 badges ──
+        if (emotion.dominant_emotions && emotion.dominant_emotions.length > 0) {
+            const emotionGroup = document.createElement("div");
+            emotionGroup.className = "plutchik-emotions";
 
+            for (const de of emotion.dominant_emotions.slice(0, 3)) {
+                const badge = document.createElement("span");
+                badge.className = "emotion-badge plutchik-badge";
+                const color = PLUTCHIK_COLORS[de.emotion] || de.color || "#888";
+                badge.style.setProperty("--plutchik-color", color);
+                badge.textContent = de.intensity_name_cn || de.cn || de.emotion;
+                badge.title = `${de.cn || ""} (${de.emotion}) — ${Math.round((de.score || 0) * 100)}%`;
+                emotionGroup.appendChild(badge);
+            }
+            container.appendChild(emotionGroup);
+        } else if (emotion.primary) {
+            // 兼容旧格式
+            const badge = document.createElement("span");
+            badge.className = "emotion-badge";
+            const intensity = emotion.intensity || 5;
+            badge.textContent = `${emotion.primary}${emotion.secondary ? " · " + emotion.secondary : ""} (${intensity}/10)`;
+            badge.title = emotion.need ? `需求: ${emotion.need}` : "";
+            if (intensity >= 7) badge.classList.add("emotion-high");
+            else if (intensity >= 4) badge.classList.add("emotion-mid");
+            else badge.classList.add("emotion-low");
+            container.appendChild(badge);
+        }
+
+        // ── 复合情绪（Dyads）──
+        if (emotion.active_dyads && emotion.active_dyads.length > 0) {
+            const dyadGroup = document.createElement("div");
+            dyadGroup.className = "dyad-badges";
+            for (const dyad of emotion.active_dyads.slice(0, 3)) {
+                const badge = document.createElement("span");
+                badge.className = "dyad-badge";
+                badge.textContent = dyad.name_cn || dyad.name_en || "";
+                badge.title = `${dyad.name_en || ""} (${dyad.type || ""}) — ${(dyad.components || []).join("+")}`;
+                dyadGroup.appendChild(badge);
+            }
+            container.appendChild(dyadGroup);
+        }
+
+        // ── 强度级别 ──
+        if (emotion.intensity_level) {
+            const intensityEl = document.createElement("span");
+            intensityEl.className = `intensity-indicator intensity-${emotion.intensity_level}`;
+            const levelNames = { mild: "平和", basic: "中等", intense: "强烈" };
+            intensityEl.textContent = levelNames[emotion.intensity_level] || emotion.intensity_level;
+            container.appendChild(intensityEl);
+        }
+
+        // ── 对话阶段 ──
         if (emotion.phase) {
             const phaseLabel = document.createElement("span");
             phaseLabel.className = "emotion-phase";
             const phaseNames = { listening: "倾听", resonance: "共鸣", guiding: "引导", elevation: "升华" };
             phaseLabel.textContent = phaseNames[emotion.phase] || emotion.phase;
             container.appendChild(phaseLabel);
+        }
+
+        // ── 心理需求 ──
+        if (emotion.need) {
+            const needEl = document.createElement("span");
+            needEl.className = "emotion-need";
+            needEl.textContent = emotion.need;
+            container.appendChild(needEl);
         }
     }
 

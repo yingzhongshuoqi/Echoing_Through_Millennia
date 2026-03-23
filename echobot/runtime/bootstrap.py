@@ -389,15 +389,37 @@ def _build_relic_context_hook(
         async with get_relic_db_session() as db:
             match = await matcher.match(db, emotion)
 
+        # --- 构建 Plutchik 情感上下文 ---
+        dominant_str = "、".join(
+            f"{d['cn']}({d.get('intensity_name_cn', d['cn'])})"
+            for d in emotion.dominant_emotions[:3]
+        ) or "平静"
+        dyad_str = "、".join(
+            d["name_cn"] for d in emotion.active_dyads[:2]
+        ) if emotion.active_dyads else "无"
+        tension_str = "、".join(
+            f"{t['pair'][0]}↔{t['pair'][1]}"
+            for t in emotion.opposite_tensions[:1]
+        ) if emotion.opposite_tensions else "无"
+        emotion_summary = (
+            f"用户情感分析（Plutchik模型）：\n"
+            f"  主导情绪：{dominant_str}\n"
+            f"  复合情绪：{dyad_str}\n"
+            f"  情感强度：{emotion.intensity_level.value}（{emotion.intensity}/10）\n"
+            f"  情感矛盾：{tension_str}\n"
+            f"  心理需求：{emotion.need or '（未识别）'}"
+        )
+
+        phase_instruction = get_phase_instruction(emotion.phase, emotion)
+        style_instruction = get_style_instruction("classical")
+
         if match is None:
-            phase_instruction = get_phase_instruction(emotion.phase)
             context = (
                 f"\n\n--- 千岁回响·情感疗愈上下文 ---\n"
-                f"用户情感分析：{emotion.primary}（{emotion.secondary}），强度 {emotion.intensity}/10\n"
-                f"心理需求：{emotion.need}\n"
+                f"{emotion_summary}\n"
                 f"当前未匹配到文物。请根据角色卡进行回复。\n"
                 f"{phase_instruction}\n"
-                f"{get_style_instruction('classical')}"
+                f"{style_instruction}"
             )
             return RelicContextResult(
                 extra_system_context=context,
@@ -406,12 +428,9 @@ def _build_relic_context_hook(
             )
 
         relic = match.relic
-        phase_instruction = get_phase_instruction(emotion.phase)
-        style_instruction = get_style_instruction("classical")
         context = (
             f"\n\n--- 千岁回响·情感疗愈上下文 ---\n"
-            f"用户情感分析：{emotion.primary}（{emotion.secondary}），强度 {emotion.intensity}/10\n"
-            f"心理需求：{emotion.need}\n"
+            f"{emotion_summary}\n"
             f"匹配文物：{relic.name}（{relic.dynasty}）\n"
             f"文物故事：{relic.story[:500]}\n"
             f"人生启示：{relic.life_insight or '（无）'}\n"
