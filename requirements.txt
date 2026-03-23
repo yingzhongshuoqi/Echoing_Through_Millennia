@@ -1,0 +1,33 @@
+# Core
+fastapi
+uvicorn
+pydantic
+loguru
+PyYAML
+Pillow
+
+# Memory
+agentscope
+reme-ai[light] @ git+https://github.com/agentscope-ai/ReMe.git
+
+# Document processing
+# defusedxml
+# lxml
+# openpyxl
+# pdf2image
+# pdfplumber
+# pypdf
+
+# ASR and TTS
+edge-tts
+sherpa-onnx
+
+# Gateway
+qq-botpy
+python-telegram-bot
+
+# Relic Knowledge Base (pgvector)
+asyncpg
+sqlalchemy[asyncio]
+pgvector
+greenlet
