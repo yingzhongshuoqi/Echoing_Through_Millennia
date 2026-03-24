@@ -80,13 +80,14 @@ class EmotionAnalyzer:
 
     def __init__(self, provider: LLMProvider) -> None:
         self._provider = provider
-        self._trajectory: list[EmotionVector] = []
+        self._trajectories: dict[str, list[EmotionVector]] = {}
 
     async def analyze(
         self,
         user_input: str,
         history: Sequence[LLMMessage] | None = None,
         turn_count: int = 0,
+        session_key: str = "",
     ) -> EmotionResult:
         """分析用户输入的情感状态，返回 EmotionResult。"""
         messages = self._build_messages(user_input, history, turn_count)
@@ -95,10 +96,10 @@ class EmotionAnalyzer:
                 messages, temperature=0.2, max_tokens=256,
             )
             text = response.message.content_text.strip()
-            return self._parse_result(text, turn_count)
+            return self._parse_result(text, turn_count, session_key)
         except Exception:
             logger.exception("Plutchik emotion analysis failed, using fallback")
-            return self._fallback_analysis(user_input, turn_count)
+            return self._fallback_analysis(user_input, turn_count, session_key)
 
     # ── 构建消息 ──
 
@@ -136,7 +137,7 @@ class EmotionAnalyzer:
 
     # ── 解析 LLM 返回 ──
 
-    def _parse_result(self, text: str, turn_count: int) -> EmotionResult:
+    def _parse_result(self, text: str, turn_count: int, session_key: str = "") -> EmotionResult:
         data = self._extract_json(text)
         if data is None:
             logger.warning("Failed to parse Plutchik JSON: %s", text[:200])
@@ -160,12 +161,13 @@ class EmotionAnalyzer:
         opposite_tensions = vec.opposite_tension()
 
         # 6. 推断对话阶段
-        phase = self._infer_phase(vec, turn_count)
+        phase = self._infer_phase(vec, turn_count, session_key)
 
-        # 7. 更新轨迹
-        self._trajectory.append(vec)
-        if len(self._trajectory) > 10:
-            self._trajectory = self._trajectory[-10:]
+        # 7. 更新轨迹（per-session）
+        traj = self._trajectories.setdefault(session_key, [])
+        traj.append(vec)
+        if len(traj) > 10:
+            self._trajectories[session_key] = traj[-10:]
 
         # 8. 提取需求和关键词
         need = data.get("need", "")
@@ -224,7 +226,7 @@ class EmotionAnalyzer:
 
     # ── 对话阶段推断 ──
 
-    def _infer_phase(self, vec: EmotionVector, turn_count: int) -> DialoguePhase:
+    def _infer_phase(self, vec: EmotionVector, turn_count: int, session_key: str = "") -> DialoguePhase:
         """基于情绪动态和对话轮次推断对话阶段。"""
         # 第一轮永远是倾听
         if turn_count <= 0:
@@ -237,9 +239,10 @@ class EmotionAnalyzer:
             if dominants and dominants[0][0].value in _NEGATIVE_EMOTIONS:
                 return DialoguePhase.LISTENING
 
-        # 有轨迹时：基于情绪动态
-        if len(self._trajectory) >= 2:
-            prev_vec = self._trajectory[-1]
+        # 有轨迹时：基于情绪动态（per-session）
+        traj = self._trajectories.get(session_key, [])
+        if len(traj) >= 2:
+            prev_vec = traj[-1]
             distance = vec.cosine_distance(prev_vec)
             prev_max = prev_vec.max_score()
 
@@ -274,7 +277,7 @@ class EmotionAnalyzer:
 
     # ── 关键词 Fallback ──
 
-    def _fallback_analysis(self, user_input: str, turn_count: int) -> EmotionResult:
+    def _fallback_analysis(self, user_input: str, turn_count: int, session_key: str = "") -> EmotionResult:
         """LLM 失败时的关键词回退分析。"""
         vec = EmotionVector()
 
@@ -343,12 +346,13 @@ class EmotionAnalyzer:
         active_dyads = vec.compute_dyads(threshold=0.2)
         intensity_level = vec.intensity_level()
         opposite_tensions = vec.opposite_tension()
-        phase = self._infer_phase(vec, turn_count)
+        phase = self._infer_phase(vec, turn_count, session_key)
 
-        # 更新轨迹
-        self._trajectory.append(vec)
-        if len(self._trajectory) > 10:
-            self._trajectory = self._trajectory[-10:]
+        # 更新轨迹（per-session）
+        traj = self._trajectories.setdefault(session_key, [])
+        traj.append(vec)
+        if len(traj) > 10:
+            self._trajectories[session_key] = traj[-10:]
 
         return EmotionResult(
             emotion_vector=vec,

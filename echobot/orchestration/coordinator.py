@@ -28,7 +28,7 @@ from .roles import RoleCard, RoleCardRegistry, role_name_from_metadata, set_role
 
 
 BackgroundJobFactory = Callable[[], Awaitable[None]]
-RelicContextHook = Callable[[str, list[LLMMessage]], Awaitable["RelicContextResult | None"]]
+RelicContextHook = Callable[[str, str, list[LLMMessage]], Awaitable["RelicContextResult | None"]]
 AGENT_HANDOFF_MAX_MESSAGES = 6
 AGENT_HANDOFF_MAX_TOTAL_CHARS = 6000
 AGENT_HANDOFF_MAX_MESSAGE_CHARS = 1800
@@ -128,7 +128,7 @@ class ConversationCoordinator:
                 if self._relic_context_hook is not None:
                     try:
                         relic_ctx = await self._relic_context_hook(
-                            prompt, list(session.history[-8:]),
+                            session_name, prompt, list(session.history[-8:]),
                         )
                     except Exception:
                         import logging as _logging

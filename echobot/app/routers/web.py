@@ -186,8 +186,13 @@ async def synthesize_tts(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except RuntimeError as exc:
+    except (RuntimeError, OSError) as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"TTS synthesis failed: {type(exc).__name__}: {exc}",
+        ) from exc
 
     return Response(
         content=speech.audio_bytes,

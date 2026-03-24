@@ -372,6 +372,7 @@ def _build_relic_context_hook(
     _turn_counters: dict[str, int] = {}
 
     async def relic_context_hook(
+        session_name: str,
         prompt: str,
         history: list[LLMMessage],
     ) -> RelicContextResult | None:
@@ -380,11 +381,12 @@ def _build_relic_context_hook(
         if _relic_db_mod._engine is None:
             return None
 
-        turn_key = "global"
-        turn_count = _turn_counters.get(turn_key, 0)
-        _turn_counters[turn_key] = turn_count + 1
+        turn_count = _turn_counters.get(session_name, 0)
+        _turn_counters[session_name] = turn_count + 1
 
-        emotion = await emotion_analyzer.analyze(prompt, history, turn_count)
+        emotion = await emotion_analyzer.analyze(
+            prompt, history, turn_count, session_key=session_name,
+        )
 
         async with get_relic_db_session() as db:
             match = await matcher.match(db, emotion)

@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import tempfile
 from pathlib import Path
 
 from ..base import SynthesizedSpeech, TTSProvider, VoiceOption
+
+logger = logging.getLogger(__name__)
+
+_MAX_RETRIES = 3
+_RETRY_DELAYS = (0.5, 1.5, 3.0)
 
 
 class EdgeTTSProvider(TTSProvider):
@@ -67,19 +73,35 @@ class EdgeTTSProvider(TTSProvider):
         if pitch:
             kwargs["pitch"] = pitch
 
-        with tempfile.TemporaryDirectory(prefix="echobot_tts_") as temp_dir:
-            output_path = Path(temp_dir) / "speech.mp3"
-            communicator = edge_tts.Communicate(**kwargs)
-            await communicator.save(str(output_path))
-            audio_bytes = await asyncio.to_thread(output_path.read_bytes)
+        last_exc: BaseException | None = None
+        for attempt in range(_MAX_RETRIES):
+            try:
+                with tempfile.TemporaryDirectory(prefix="echobot_tts_") as temp_dir:
+                    output_path = Path(temp_dir) / "speech.mp3"
+                    communicator = edge_tts.Communicate(**kwargs)
+                    await communicator.save(str(output_path))
+                    audio_bytes = await asyncio.to_thread(output_path.read_bytes)
 
-        return SynthesizedSpeech(
-            audio_bytes=audio_bytes,
-            content_type="audio/mpeg",
-            file_extension="mp3",
-            provider=self.name,
-            voice=selected_voice,
-        )
+                return SynthesizedSpeech(
+                    audio_bytes=audio_bytes,
+                    content_type="audio/mpeg",
+                    file_extension="mp3",
+                    provider=self.name,
+                    voice=selected_voice,
+                )
+            except (OSError, ConnectionError) as exc:
+                last_exc = exc
+                if attempt < _MAX_RETRIES - 1:
+                    delay = _RETRY_DELAYS[attempt]
+                    logger.warning(
+                        "Edge TTS attempt %d/%d failed (%s), retrying in %.1fs",
+                        attempt + 1, _MAX_RETRIES, exc, delay,
+                    )
+                    await asyncio.sleep(delay)
+
+        raise RuntimeError(
+            f"Edge TTS failed after {_MAX_RETRIES} attempts: {last_exc}",
+        ) from last_exc
 
     @staticmethod
     def _load_module():

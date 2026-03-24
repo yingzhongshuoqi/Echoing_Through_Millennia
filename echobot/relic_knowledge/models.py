@@ -24,9 +24,11 @@ class Relic(RelicBase):
     emotion_tags: Mapped[list] = mapped_column(JSONB, default=list)
     image_url: Mapped[str | None] = mapped_column(String(512))
     embedding = mapped_column(Vector(1024))
+    emotion_vector = mapped_column(Vector(8), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     def to_dict(self) -> dict:
+        ev = self.emotion_vector
         return {
             "id": self.id,
             "name": self.name,
@@ -38,4 +40,5 @@ class Relic(RelicBase):
             "life_insight": self.life_insight,
             "emotion_tags": self.emotion_tags or [],
             "image_url": self.image_url,
+            "emotion_vector": list(ev) if ev is not None else None,
         }

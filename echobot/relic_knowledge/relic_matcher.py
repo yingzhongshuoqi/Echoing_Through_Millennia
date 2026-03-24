@@ -30,6 +30,7 @@ class RelicMatcher:
             db,
             query_text=query_text,
             keywords=tag_keywords,
+            emotion_vector=emotion.emotion_vector.to_list(),
             limit=5,
         )
 
@@ -44,10 +45,9 @@ class RelicMatcher:
         return matches[0]
 
     def _build_query(self, emotion: EmotionResult) -> str:
-        """利用 Plutchik 丰富数据构建语义查询文本。"""
+        """仅使用 Plutchik 词表构建语义查询文本。"""
         parts: list[str] = []
 
-        # 主导情绪：使用强度层级中文名（比基本名更具表现力）
         for de in emotion.dominant_emotions[:2]:
             intensity_cn = de.get("intensity_name_cn", "")
             cn = de.get("cn", "")
@@ -56,23 +56,15 @@ class RelicMatcher:
             elif cn:
                 parts.append(cn)
 
-        # 复合情绪中文名（Dyads 更贴合复杂情感场景）
         for dyad in emotion.active_dyads[:2]:
             cn = dyad.get("name_cn", "")
             if cn:
                 parts.append(cn)
 
-        # 心理需求
-        if emotion.need:
-            parts.append(emotion.need)
-
-        # 关键词
-        parts.extend(emotion.keywords[:3])
-
         return " ".join(parts) if parts else "平静"
 
     def _emotion_to_tag_keywords(self, emotion: EmotionResult) -> list[str]:
-        """从 Plutchik 分析结果提取关键词，用于文物 emotion_tags 匹配。"""
+        """仅从 Plutchik 词表提取关键词，用于文物 emotion_tags 匹配。"""
         tags: list[str] = []
 
         for de in emotion.dominant_emotions[:3]:
@@ -88,9 +80,6 @@ class RelicMatcher:
             if cn:
                 tags.append(cn)
 
-        tags.extend(emotion.keywords)
-
-        # 去重保序
         seen: set[str] = set()
         unique: list[str] = []
         for t in tags:
