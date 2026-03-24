@@ -418,7 +418,8 @@ def _build_relic_context_hook(
             context = (
                 f"\n\n--- 千岁回响·情感疗愈上下文 ---\n"
                 f"{emotion_summary}\n"
-                f"当前未匹配到文物。请根据角色卡进行回复。\n"
+                f"当前未匹配到文物。请根据角色卡进行共情倾听回复。\n"
+                f"【重要】没有匹配到文物时，禁止编造任何文物或虚构故事，只做共情倾听。\n"
                 f"{phase_instruction}\n"
                 f"{style_instruction}"
             )
@@ -438,7 +439,11 @@ def _build_relic_context_hook(
             f"匹配度：{match.score:.2f}\n"
             f"\n{phase_instruction}\n"
             f"{style_instruction}\n"
-            f"\n请将上述文物故事自然融入你的回复中，帮助用户从中获得疗愈和启发。"
+            f"\n【重要】当你在回复中引入文物故事时，必须使用上面提供的「匹配文物」的故事内容，"
+            f"禁止编造任何不存在的文物或虚构故事（如'一把古剑'、'一只瓷瓶'等）。"
+            f"如果上面没有匹配到文物，就不要讲文物故事，只做共情倾听。\n"
+            f"请根据当前对话阶段控制回复长度和故事引入时机。"
+            f"文物故事用第三人称讲述，不要化身为文物。"
         )
         return RelicContextResult(
             extra_system_context=context,

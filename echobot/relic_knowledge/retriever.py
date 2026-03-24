@@ -171,7 +171,7 @@ class RelicRetriever:
         params: dict = {}
         for i, kw in enumerate(keywords[:5]):
             param_name = f"kw_{i}"
-            conditions.append(f"emotion_tags @> :{param_name}::jsonb")
+            conditions.append(f"emotion_tags @> CAST(:{param_name} AS jsonb)")
             params[param_name] = f'["{kw}"]'
 
         where_clause = " OR ".join(conditions)
