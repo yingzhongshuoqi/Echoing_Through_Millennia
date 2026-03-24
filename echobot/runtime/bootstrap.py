@@ -408,8 +408,7 @@ def _build_relic_context_hook(
             f"  主导情绪：{dominant_str}\n"
             f"  复合情绪：{dyad_str}\n"
             f"  情感强度：{emotion.intensity_level.value}（{emotion.intensity}/10）\n"
-            f"  情感矛盾：{tension_str}\n"
-            f"  心理需求：{emotion.need or '（未识别）'}"
+            f"  情感矛盾：{tension_str}"
         )
 
         phase_instruction = get_phase_instruction(emotion.phase, emotion)

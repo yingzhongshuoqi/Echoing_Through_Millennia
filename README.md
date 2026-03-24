@@ -50,13 +50,13 @@
 
 **算法流程：**
 
-1. **LLM 评分** — 调用大模型为 8 种基本情绪打分 (0.0-1.0)，返回结构化 JSON
+1. **LLM 评分** — 调用大模型为 8 种基本情绪打分 (0.0-1.0)，只返回纯 `scores` JSON
 2. **向量构建** — 从 8 个分数构建 `EmotionVector`，所有后续计算确定性完成
 3. **复合情绪** — 自动检测 24 种 Dyads (初级/二级/三级配对)
 4. **强度分级** — mild (平和) / basic (中等) / intense (强烈)
 5. **对立冲突** — 检测快乐↔悲伤等 4 组对立情绪的同时激活
 6. **轨迹追踪** — 通过余弦距离追踪情绪变化，动态推断对话阶段
-7. **文物匹配** — 混合检索：1024 维语义相似度 (权重 0.7) + 8 维情绪向量余弦相似度 (权重 0.3)，精准匹配最契合的文物
+7. **文物匹配** — 混合检索：1024 维语义相似度 × 0.5 + 8 维情绪向量余弦相似度 × 0.5，等权平衡语义主题与情绪精度
 
 **24 种复合情绪 (Dyads)：**
 
@@ -316,8 +316,8 @@ python -m echobot gateway
     ┌──────────────────────────────┐
     │     混合检索 (Hybrid Search)  │
     │                              │
-    │  1024维 语义相似度 × 0.7     │  ← cosine_distance(embedding)
-    │  + 8维 情绪向量相似度 × 0.3  │  ← cosine_distance(emotion_vector)
+    │  1024维 语义相似度 × 0.5     │  ← cosine_distance(embedding)
+    │  + 8维 情绪向量相似度 × 0.5  │  ← cosine_distance(emotion_vector)
     │  ────────────────────────    │
     │  = combined_score            │
     └──────────────┬───────────────┘
@@ -334,14 +334,15 @@ python -m echobot gateway
 
 **关键设计：纯 Plutchik 流水线**
 
-整个匹配过程严格使用 Plutchik 词表，不引入任何自由文本标签：
+整个管线从 LLM prompt 到数据库匹配，严格使用 Plutchik 词表，不引入任何自由文本：
 
 | 环节 | 输入 | 说明 |
 |------|------|------|
-| 语义查询 | 主导情绪中文名 + 强度中文名 + 活跃 Dyad 中文名 | 如 "忧虑 兴趣 焦虑" |
-| 关键词匹配 | 同上 Plutchik 术语 | 仅搜索 `emotion_tags` 列 |
-| 向量匹配 | 用户 8 维情绪向量 vs 文物 8 维情绪向量 | 余弦相似度 |
-| emotion_tags | 纯 Plutchik 词表 | 基本情绪 + 强度等级 + Dyad 名称 |
+| LLM 评分 | 用户输入 + 对话历史 | 只返回 `{"scores":{...}}` JSON，无 need/keywords |
+| 语义查询 | 强度中文名 + Dyad 中文名 | 如 "忧虑 兴趣 焦虑"，纯 Plutchik 术语 |
+| 混合检索 | 1024 维 embedding × 0.5 + 8 维 emotion_vector × 0.5 | 等权余弦相似度 |
+| 关键词补充 | Plutchik 术语 JSONB 精确匹配 `emotion_tags` | 命中后按情绪向量相似度排序 |
+| 对话策略 | Dyad + 强度 + 对立冲突 + 阶段 | 24 种 Dyad 专属治疗指引 |
 
 ### NDJSON 流式输出
 
@@ -370,8 +371,8 @@ python -m echobot gateway
   "relic": {
     "id": 3, "name": "越王勾践剑", "dynasty": "春秋",
     "score": 0.8521,
-    "match_reason": "hybrid: semantic=0.82, emotion=0.91",
-    "emotion_vector": [0.3, 0.5, 0.2, 0.3, 0.4, 0.5, 0.7, 0.8],
+    "match_reason": "hybrid(sem=0.820,emo=0.910)",
+    "emotion_vector": [0.1, 0.35, 0.2, 0.05, 0.6, 0.35, 0.7, 0.8],
     ...
   }
 }

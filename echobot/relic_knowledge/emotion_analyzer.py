@@ -18,8 +18,6 @@ from .emotion_models import (
     DialoguePhase,
     EmotionResult,
     EmotionVector,
-    IntensityLevel,
-    PLUTCHIK_WHEEL,
     WHEEL_ORDER,
     enrich_dominant_emotions,
 )
@@ -30,11 +28,11 @@ logger = logging.getLogger(__name__)
 # System Prompt — 教导 LLM 普拉奇克模型
 # ──────────────────────────────────────────────
 
-PLUTCHIK_ANALYSIS_PROMPT = """你是一位基于普拉奇克情绪轮盘(Plutchik's Wheel of Emotions)模型的专业心理情感分析师。
+PLUTCHIK_ANALYSIS_PROMPT = """你是基于普拉奇克情绪轮盘(Plutchik's Wheel of Emotions)的情感评分器。
 
-## 普拉奇克情绪轮盘模型
+## 8种基本情绪（按轮盘顺序）
 
-8种基本情绪（按轮盘顺序），每种有3个强度层级（弱→基本→强）：
+每种有3个强度层级（弱→基本→强）：
 1. Joy 快乐 — 宁静 → 快乐 → 狂喜
 2. Trust 信任 — 接受 → 信任 → 崇敬
 3. Fear 恐惧 — 忧虑 → 恐惧 → 恐怖
@@ -46,22 +44,16 @@ PLUTCHIK_ANALYSIS_PROMPT = """你是一位基于普拉奇克情绪轮盘(Plutchi
 
 4组对立关系：快乐↔悲伤、信任↔厌恶、恐惧↔愤怒、惊讶↔期待
 
-相邻情绪组合产生复合情绪：
-- 快乐+信任=爱, 信任+恐惧=顺从, 恐惧+惊讶=敬畏, 惊讶+悲伤=不赞同
-- 悲伤+厌恶=悔恨, 厌恶+愤怒=鄙视, 愤怒+期待=好斗, 期待+快乐=乐观
+## 任务
 
-## 分析任务
-
-请仔细阅读用户输入及对话上下文，为每种基本情绪打分（0.0-1.0）：
+阅读用户输入及对话上下文，为8种基本情绪打分（0.0-1.0）：
 - 0.0 = 完全不存在
 - 0.1-0.3 = 轻微存在
 - 0.4-0.6 = 明显存在
 - 0.7-1.0 = 非常强烈
 
-同时识别用户的心理需求和情感关键词。
-
-请严格按以下JSON格式返回，不要包含其他内容：
-{"scores":{"joy":0.0,"trust":0.0,"fear":0.0,"surprise":0.0,"sadness":0.0,"disgust":0.0,"anger":0.0,"anticipation":0.0},"need":"心理需求描述","keywords":["关键词1","关键词2","关键词3"]}"""
+只返回JSON，不要包含其他内容：
+{"scores":{"joy":0.0,"trust":0.0,"fear":0.0,"surprise":0.0,"sadness":0.0,"disgust":0.0,"anger":0.0,"anticipation":0.0}}"""
 
 
 # ──────────────────────────────────────────────
@@ -169,21 +161,13 @@ class EmotionAnalyzer:
         if len(traj) > 10:
             self._trajectories[session_key] = traj[-10:]
 
-        # 8. 提取需求和关键词
-        need = data.get("need", "")
-        keywords = data.get("keywords", [])
-        if isinstance(keywords, str):
-            keywords = [keywords]
-
         return EmotionResult(
             emotion_vector=vec,
             dominant_emotions=dominant_emotions,
             active_dyads=active_dyads,
             intensity_level=intensity_level,
             opposite_tensions=opposite_tensions,
-            need=need,
             phase=phase,
-            keywords=keywords,
             raw_analysis=text,
         )
 
@@ -277,78 +261,65 @@ class EmotionAnalyzer:
 
     # ── 关键词 Fallback ──
 
+    _KEYWORD_MAP: dict[str, dict[str, float]] = {
+        "难过": {"sadness": 0.6},
+        "伤心": {"sadness": 0.7},
+        "痛苦": {"sadness": 0.8, "anger": 0.2},
+        "失望": {"sadness": 0.5, "disgust": 0.3},
+        "失落": {"sadness": 0.6},
+        "焦虑": {"fear": 0.5, "anticipation": 0.4},
+        "害怕": {"fear": 0.7},
+        "恐惧": {"fear": 0.8},
+        "孤独": {"sadness": 0.5, "fear": 0.2},
+        "迷茫": {"surprise": 0.3, "fear": 0.3},
+        "烦": {"anger": 0.4, "disgust": 0.3},
+        "累": {"sadness": 0.3, "disgust": 0.3},
+        "苦": {"sadness": 0.5, "disgust": 0.2},
+        "怒": {"anger": 0.7},
+        "气": {"anger": 0.5},
+        "愤怒": {"anger": 0.8},
+        "不甘": {"anger": 0.5, "sadness": 0.3},
+        "委屈": {"sadness": 0.5, "anger": 0.3},
+        "嫉妒": {"sadness": 0.4, "anger": 0.4},
+        "怨恨": {"anger": 0.6, "disgust": 0.3},
+        "厌倦": {"disgust": 0.5, "sadness": 0.2},
+        "恶心": {"disgust": 0.7},
+        "开心": {"joy": 0.6},
+        "高兴": {"joy": 0.6},
+        "喜欢": {"joy": 0.4, "trust": 0.3},
+        "快乐": {"joy": 0.7},
+        "感谢": {"joy": 0.4, "trust": 0.5},
+        "美好": {"joy": 0.5, "trust": 0.3},
+        "幸福": {"joy": 0.8, "trust": 0.3},
+        "满足": {"joy": 0.5, "trust": 0.2},
+        "感动": {"joy": 0.5, "sadness": 0.2, "trust": 0.3},
+        "希望": {"anticipation": 0.6, "trust": 0.3},
+        "期待": {"anticipation": 0.7},
+        "兴奋": {"joy": 0.5, "anticipation": 0.5},
+        "好奇": {"surprise": 0.4, "trust": 0.3},
+        "惊讶": {"surprise": 0.6},
+        "震惊": {"surprise": 0.8},
+        "敬畏": {"fear": 0.3, "surprise": 0.4, "trust": 0.3},
+        "怀念": {"sadness": 0.3, "joy": 0.2, "anticipation": 0.2},
+        "思念": {"sadness": 0.4, "joy": 0.2},
+        "平静": {},
+        "释然": {"joy": 0.3, "trust": 0.2},
+    }
+
     def _fallback_analysis(self, user_input: str, turn_count: int, session_key: str = "") -> EmotionResult:
-        """LLM 失败时的关键词回退分析。"""
-        vec = EmotionVector()
-
-        # 中文关键词 → Plutchik 维度映射
-        _KEYWORD_MAP: dict[str, dict[str, float]] = {
-            "难过": {"sadness": 0.6},
-            "伤心": {"sadness": 0.7},
-            "痛苦": {"sadness": 0.8, "anger": 0.2},
-            "失望": {"sadness": 0.5, "disgust": 0.3},
-            "失落": {"sadness": 0.6},
-            "焦虑": {"fear": 0.5, "anticipation": 0.4},
-            "害怕": {"fear": 0.7},
-            "恐惧": {"fear": 0.8},
-            "孤独": {"sadness": 0.5, "fear": 0.2},
-            "迷茫": {"surprise": 0.3, "fear": 0.3},
-            "烦": {"anger": 0.4, "disgust": 0.3},
-            "累": {"sadness": 0.3, "disgust": 0.3},
-            "苦": {"sadness": 0.5, "disgust": 0.2},
-            "怒": {"anger": 0.7},
-            "气": {"anger": 0.5},
-            "愤怒": {"anger": 0.8},
-            "不甘": {"anger": 0.5, "sadness": 0.3},
-            "委屈": {"sadness": 0.5, "anger": 0.3},
-            "嫉妒": {"sadness": 0.4, "anger": 0.4},
-            "怨恨": {"anger": 0.6, "disgust": 0.3},
-            "厌倦": {"disgust": 0.5, "sadness": 0.2},
-            "恶心": {"disgust": 0.7},
-            "开心": {"joy": 0.6},
-            "高兴": {"joy": 0.6},
-            "喜欢": {"joy": 0.4, "trust": 0.3},
-            "快乐": {"joy": 0.7},
-            "感谢": {"joy": 0.4, "trust": 0.5},
-            "美好": {"joy": 0.5, "trust": 0.3},
-            "幸福": {"joy": 0.8, "trust": 0.3},
-            "满足": {"joy": 0.5, "trust": 0.2},
-            "感动": {"joy": 0.5, "sadness": 0.2, "trust": 0.3},
-            "希望": {"anticipation": 0.6, "trust": 0.3},
-            "期待": {"anticipation": 0.7},
-            "兴奋": {"joy": 0.5, "anticipation": 0.5},
-            "好奇": {"surprise": 0.4, "trust": 0.3},
-            "惊讶": {"surprise": 0.6},
-            "震惊": {"surprise": 0.8},
-            "敬畏": {"fear": 0.3, "surprise": 0.4, "trust": 0.3},
-            "怀念": {"sadness": 0.3, "joy": 0.2, "anticipation": 0.2},
-            "思念": {"sadness": 0.4, "joy": 0.2},
-            "平静": {},
-            "释然": {"joy": 0.3, "trust": 0.2},
-        }
-
-        # 逐词匹配，累加分数
+        """LLM 失败时的关键词回退，生成近似 EmotionVector。"""
         scores: dict[str, float] = {e.value: 0.0 for e in WHEEL_ORDER}
-        matched_keywords: list[str] = []
-        for keyword, mapping in _KEYWORD_MAP.items():
+        for keyword, mapping in self._KEYWORD_MAP.items():
             if keyword in user_input:
-                matched_keywords.append(keyword)
                 for emo, val in mapping.items():
                     scores[emo] = min(1.0, scores[emo] + val)
 
-        # 构建向量
-        for emo in WHEEL_ORDER:
-            setattr(vec, emo.value, min(1.0, scores[emo.value]))
+        vec = EmotionVector(**{e.value: scores[e.value] for e in WHEEL_ORDER})
 
-        # 后处理
-        raw_dominants = vec.dominant_emotions(threshold=0.2, top_n=3)
-        dominant_emotions = enrich_dominant_emotions(raw_dominants)
+        dominant_emotions = enrich_dominant_emotions(vec.dominant_emotions(threshold=0.2, top_n=3))
         active_dyads = vec.compute_dyads(threshold=0.2)
-        intensity_level = vec.intensity_level()
-        opposite_tensions = vec.opposite_tension()
         phase = self._infer_phase(vec, turn_count, session_key)
 
-        # 更新轨迹（per-session）
         traj = self._trajectories.setdefault(session_key, [])
         traj.append(vec)
         if len(traj) > 10:
@@ -358,9 +329,7 @@ class EmotionAnalyzer:
             emotion_vector=vec,
             dominant_emotions=dominant_emotions,
             active_dyads=active_dyads,
-            intensity_level=intensity_level,
-            opposite_tensions=opposite_tensions,
-            need="被理解" if matched_keywords else "",
+            intensity_level=vec.intensity_level(),
+            opposite_tensions=vec.opposite_tension(),
             phase=phase,
-            keywords=matched_keywords[:5] if matched_keywords else ["平静"],
         )

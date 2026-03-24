@@ -207,14 +207,6 @@ OPPOSITE_PAIRS: list[tuple[PlutchikEmotion, PlutchikEmotion]] = [
     (PlutchikEmotion.SURPRISE, PlutchikEmotion.ANTICIPATION),
 ]
 
-# 心理需求列表
-PSYCHOLOGICAL_NEEDS = [
-    "被理解", "被接纳", "获得力量", "寻找意义",
-    "获得安慰", "重建信心", "找到方向", "学会放下",
-    "获得勇气", "找到归属", "自我认同", "情感释放",
-    "化解矛盾", "重建信任", "接纳自我",
-]
-
 
 # ──────────────────────────────────────────────
 # EmotionVector — 8 维情绪向量
@@ -391,10 +383,8 @@ class EmotionResult:
     intensity_level: IntensityLevel = IntensityLevel.BASIC
     opposite_tensions: list[dict[str, Any]] = field(default_factory=list)
 
-    # 治疗语境
-    need: str = ""
+    # 对话阶段
     phase: DialoguePhase = DialoguePhase.LISTENING
-    keywords: list[str] = field(default_factory=list)
 
     # 调试
     raw_analysis: str = ""
@@ -431,10 +421,7 @@ class EmotionResult:
             "active_dyads": self.active_dyads,
             "intensity_level": self.intensity_level.value,
             "opposite_tensions": self.opposite_tensions,
-            # 治疗语境
-            "need": self.need,
             "phase": self.phase.value,
-            "keywords": self.keywords,
             # 向后兼容
             "primary": self.primary,
             "secondary": self.secondary,
@@ -472,7 +459,5 @@ class EmotionResult:
             active_dyads=dyads,
             intensity_level=il,
             opposite_tensions=data.get("opposite_tensions", []),
-            need=data.get("need", ""),
             phase=phase,
-            keywords=data.get("keywords", []),
         )

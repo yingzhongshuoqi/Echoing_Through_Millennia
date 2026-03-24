@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from sqlalchemy import select, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .embeddings import EmbeddingService
@@ -32,6 +32,18 @@ class RelicRetriever:
     def __init__(self, embedding_service: EmbeddingService) -> None:
         self._embedding = embedding_service
 
+    @staticmethod
+    def _row_to_relic(row) -> Relic:
+        ev = getattr(row, "emotion_vector", None)
+        return Relic(
+            id=row.id, name=row.name, dynasty=row.dynasty,
+            period=row.period, category=row.category,
+            description=row.description, story=row.story,
+            life_insight=row.life_insight, emotion_tags=row.emotion_tags or [],
+            image_url=row.image_url, created_at=row.created_at,
+            emotion_vector=list(ev) if ev is not None else None,
+        )
+
     async def search_by_emotion(
         self,
         db: AsyncSession,
@@ -50,7 +62,9 @@ class RelicRetriever:
             results = await self._vector_search(db, query_embedding, limit=limit * 2)
 
         if keywords:
-            keyword_results = await self._keyword_search(db, keywords, limit=limit)
+            keyword_results = await self._keyword_search(
+                db, keywords, emotion_vector=emotion_vector, limit=limit,
+            )
             seen_ids = {r.relic.id for r in results}
             for kr in keyword_results:
                 if kr.relic.id not in seen_ids:
@@ -79,6 +93,7 @@ class RelicRetriever:
             """
             SELECT id, name, dynasty, period, category, description, story,
                    life_insight, emotion_tags, image_url, created_at,
+                   emotion_vector,
                    1 - (embedding <=> CAST(:embedding AS vector)) as similarity
             FROM relics
             WHERE embedding IS NOT NULL
@@ -91,13 +106,7 @@ class RelicRetriever:
 
         matches = []
         for row in rows:
-            relic = Relic(
-                id=row.id, name=row.name, dynasty=row.dynasty,
-                period=row.period, category=row.category,
-                description=row.description, story=row.story,
-                life_insight=row.life_insight, emotion_tags=row.emotion_tags or [],
-                image_url=row.image_url, created_at=row.created_at,
-            )
+            relic = self._row_to_relic(row)
             matches.append(RelicMatch(relic=relic, score=float(row.similarity), match_reason="semantic"))
         return matches
 
@@ -107,9 +116,9 @@ class RelicRetriever:
         embedding: list[float],
         emotion_vector: list[float],
         limit: int = 5,
-        semantic_weight: float = 0.7,
+        semantic_weight: float = 0.5,
     ) -> list[RelicMatch]:
-        """Combine 1024-dim semantic similarity with 8-dim emotion vector similarity."""
+        """1024-dim semantic + 8-dim Plutchik emotion vector, equal weight by default."""
         embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
         emo_str = "[" + ",".join(str(x) for x in emotion_vector) + "]"
         emo_weight = 1.0 - semantic_weight
@@ -140,13 +149,7 @@ class RelicRetriever:
 
         matches = []
         for row in rows:
-            relic = Relic(
-                id=row.id, name=row.name, dynasty=row.dynasty,
-                period=row.period, category=row.category,
-                description=row.description, story=row.story,
-                life_insight=row.life_insight, emotion_tags=row.emotion_tags or [],
-                image_url=row.image_url, created_at=row.created_at,
-            )
+            relic = self._row_to_relic(row)
             matches.append(RelicMatch(
                 relic=relic,
                 score=float(row.combined_score),
@@ -158,6 +161,7 @@ class RelicRetriever:
         self,
         db: AsyncSession,
         keywords: list[str],
+        emotion_vector: list[float] | None = None,
         limit: int = 3,
     ) -> list[RelicMatch]:
         if not keywords:
@@ -167,26 +171,35 @@ class RelicRetriever:
         params: dict = {}
         for i, kw in enumerate(keywords[:5]):
             param_name = f"kw_{i}"
-            conditions.append(f"(emotion_tags::text ILIKE :{param_name})")
-            params[param_name] = f"%{kw}%"
+            conditions.append(f"emotion_tags @> :{param_name}::jsonb")
+            params[param_name] = f'["{kw}"]'
 
         where_clause = " OR ".join(conditions)
-        query = text(f"SELECT * FROM relics WHERE {where_clause} LIMIT :limit")
-        params["limit"] = limit
 
-        result = await db.execute(query, params)
+        if emotion_vector and len(emotion_vector) == 8:
+            emo_str = "[" + ",".join(str(x) for x in emotion_vector) + "]"
+            sql = (
+                f"SELECT *, "
+                f"COALESCE(1 - (emotion_vector <=> CAST(:emo_vec AS vector(8))), 0.5) AS kw_score "
+                f"FROM relics WHERE {where_clause} "
+                f"ORDER BY kw_score DESC LIMIT :limit"
+            )
+            params["emo_vec"] = emo_str
+        else:
+            sql = f"SELECT *, 0.5 AS kw_score FROM relics WHERE {where_clause} LIMIT :limit"
+
+        params["limit"] = limit
+        result = await db.execute(text(sql), params)
         rows = result.fetchall()
 
         matches = []
         for row in rows:
-            relic = Relic(
-                id=row.id, name=row.name, dynasty=row.dynasty,
-                period=row.period, category=row.category,
-                description=row.description, story=row.story,
-                life_insight=row.life_insight, emotion_tags=row.emotion_tags or [],
-                image_url=row.image_url, created_at=row.created_at,
-            )
-            matches.append(RelicMatch(relic=relic, score=0.5, match_reason="keyword"))
+            relic = self._row_to_relic(row)
+            matches.append(RelicMatch(
+                relic=relic,
+                score=float(row.kw_score),
+                match_reason="keyword",
+            ))
         return matches
 
     async def get_random(self, db: AsyncSession, limit: int = 1) -> list[RelicMatch]:
@@ -195,14 +208,7 @@ class RelicRetriever:
             {"limit": limit},
         )
         rows = result.fetchall()
-        matches = []
-        for row in rows:
-            relic = Relic(
-                id=row.id, name=row.name, dynasty=row.dynasty,
-                period=row.period, category=row.category,
-                description=row.description, story=row.story,
-                life_insight=row.life_insight, emotion_tags=row.emotion_tags or [],
-                image_url=row.image_url, created_at=row.created_at,
-            )
-            matches.append(RelicMatch(relic=relic, score=1.0, match_reason="random"))
-        return matches
+        return [
+            RelicMatch(relic=self._row_to_relic(row), score=1.0, match_reason="random")
+            for row in rows
+        ]
