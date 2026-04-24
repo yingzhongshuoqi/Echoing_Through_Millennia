@@ -18,7 +18,7 @@ from ..schemas import (
     WebStageConfigModel,
 )
 from ..services.web_console import Live2DUploadFile
-from ..state import get_app_runtime
+from ..state import get_app_runtime, get_current_user
 
 
 router = APIRouter(tags=["web"])
@@ -26,6 +26,7 @@ router = APIRouter(tags=["web"])
 
 @router.get("/web/config", response_model=WebConfigResponse)
 async def get_web_config(
+    _current_user=Depends(get_current_user),
     runtime=Depends(get_app_runtime),
 ) -> WebConfigResponse:
     if runtime.session_service is None or runtime.context is None:
@@ -50,6 +51,7 @@ async def get_web_config(
 @router.patch("/web/runtime", response_model=WebRuntimeConfigModel)
 async def update_web_runtime_config(
     request: UpdateWebRuntimeConfigRequest,
+    _current_user=Depends(get_current_user),
     runtime=Depends(get_app_runtime),
 ) -> WebRuntimeConfigModel:
     if runtime.context is None:
@@ -67,6 +69,7 @@ async def update_web_runtime_config(
 @router.get("/web/live2d/{asset_path:path}")
 async def get_live2d_asset(
     asset_path: str,
+    _current_user=Depends(get_current_user),
     runtime=Depends(get_app_runtime),
 ) -> FileResponse:
     try:
@@ -81,6 +84,7 @@ async def get_live2d_asset(
 @router.get("/web/stage/backgrounds/{asset_path:path}")
 async def get_stage_background_asset(
     asset_path: str,
+    _current_user=Depends(get_current_user),
     runtime=Depends(get_app_runtime),
 ) -> FileResponse:
     try:
@@ -95,6 +99,7 @@ async def get_stage_background_asset(
 @router.post("/web/stage/backgrounds", response_model=WebStageConfigModel)
 async def upload_stage_background(
     image: UploadFile = File(...),
+    _current_user=Depends(get_current_user),
     runtime=Depends(get_app_runtime),
 ) -> WebStageConfigModel:
     try:
@@ -114,6 +119,7 @@ async def upload_stage_background(
 async def upload_live2d_directory(
     files: list[UploadFile] = File(...),
     relative_paths: list[str] = Form(...),
+    _current_user=Depends(get_current_user),
     runtime=Depends(get_app_runtime),
 ) -> WebLive2DConfigModel:
     try:
@@ -141,6 +147,7 @@ async def upload_live2d_directory(
 @router.get("/web/tts/voices", response_model=TTSVoicesResponse)
 async def get_tts_voices(
     provider: str | None = Query(default=None),
+    _current_user=Depends(get_current_user),
     runtime=Depends(get_app_runtime),
 ) -> TTSVoicesResponse:
     try:
@@ -169,6 +176,7 @@ async def get_tts_voices(
 @router.post("/web/tts")
 async def synthesize_tts(
     request: TTSRequest,
+    _current_user=Depends(get_current_user),
     runtime=Depends(get_app_runtime),
 ) -> Response:
     text = request.text.strip()
@@ -205,7 +213,10 @@ async def synthesize_tts(
 
 
 @router.get("/web/asr/status", response_model=WebASRConfigModel)
-async def get_asr_status(runtime=Depends(get_app_runtime)) -> WebASRConfigModel:
+async def get_asr_status(
+    _current_user=Depends(get_current_user),
+    runtime=Depends(get_app_runtime),
+) -> WebASRConfigModel:
     snapshot = await runtime.web_console_service.asr_service.status_snapshot()
     return WebASRConfigModel(
         available=snapshot.available,
@@ -222,6 +233,7 @@ async def get_asr_status(runtime=Depends(get_app_runtime)) -> WebASRConfigModel:
 @router.post("/web/asr", response_model=ASRTranscriptionResponse)
 async def transcribe_audio(
     request: Request,
+    _current_user=Depends(get_current_user),
     runtime=Depends(get_app_runtime),
 ) -> ASRTranscriptionResponse:
     audio_bytes = await request.body()
@@ -243,6 +255,18 @@ async def asr_websocket(websocket: WebSocket) -> None:
     runtime = getattr(websocket.app.state, "runtime", None)
     if runtime is None or runtime.web_console_service is None:
         await websocket.close(code=1011, reason="EchoBot runtime is not ready")
+        return
+
+    # WebSocket 不能直接复用 Request 依赖，这里手动校验登录 Cookie。
+    auth_service = getattr(runtime, "auth_service", None)
+    if auth_service is None or not auth_service.ready:
+        await websocket.close(code=1011, reason="Authentication service is not ready")
+        return
+
+    session_token = websocket.cookies.get(auth_service.cookie_name, "").strip()
+    current_user = await auth_service.get_user_by_token(session_token)
+    if current_user is None:
+        await websocket.close(code=4401, reason="Unauthorized")
         return
 
     await websocket.accept()

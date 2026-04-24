@@ -36,3 +36,19 @@ async def get_current_user(
     if current_user is None:
         raise HTTPException(status_code=401, detail="登录状态已失效，请重新登录")
     return current_user
+
+
+async def get_optional_current_user(
+    request: Request,
+    runtime=Depends(get_app_runtime),
+) -> AuthUser | None:
+    """在不强制报错的情况下读取当前登录用户。"""
+
+    auth_service = getattr(runtime, "auth_service", None)
+    if auth_service is None or not auth_service.ready:
+        return None
+
+    session_token = request.cookies.get(auth_service.cookie_name, "").strip()
+    if not session_token:
+        return None
+    return await auth_service.get_user_by_token(session_token)

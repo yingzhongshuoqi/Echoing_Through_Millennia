@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EchoBot 登录</title>
+    <link rel="icon" href="/favicon.ico" type="image/svg+xml">
+    <link rel="stylesheet" href="/web/assets/styles.css">
+</head>
+<body class="auth-page">
+    <main class="auth-shell">
+        <section class="auth-hero">
+            <p class="eyebrow">EchoBot</p>
+            <h1>登录后继续进入疗愈对话</h1>
+            <p class="auth-description">
+                这是当前项目的最小可运行登录页。
+                你可以直接注册新账号，或使用已有账号登录后进入原聊天页面。
+            </p>
+        </section>
+
+        <section class="auth-card" aria-label="登录与注册">
+            <div class="auth-tabs" role="tablist" aria-label="登录方式切换">
+                <button
+                    id="login-tab-button"
+                    class="auth-tab-button is-active"
+                    type="button"
+                    data-mode="login"
+                    role="tab"
+                    aria-selected="true"
+                >
+                    登录
+                </button>
+                <button
+                    id="register-tab-button"
+                    class="auth-tab-button"
+                    type="button"
+                    data-mode="register"
+                    role="tab"
+                    aria-selected="false"
+                >
+                    注册
+                </button>
+            </div>
+
+            <p id="auth-status" class="auth-status" role="status" aria-live="polite">
+                请输入用户名和密码。
+            </p>
+
+            <!-- 登录表单与注册表单共用一套脚本，通过标签切换显示。 -->
+            <form id="login-form" class="auth-form">
+                <label class="auth-field">
+                    <span>用户名</span>
+                    <input id="login-username" type="text" autocomplete="username" required>
+                </label>
+                <label class="auth-field">
+                    <span>密码</span>
+                    <input id="login-password" type="password" autocomplete="current-password" required>
+                </label>
+                <button id="login-submit-button" class="primary-button auth-submit-button" type="submit">
+                    登录并进入聊天
+                </button>
+            </form>
+
+            <form id="register-form" class="auth-form" hidden>
+                <label class="auth-field">
+                    <span>用户名</span>
+                    <input id="register-username" type="text" autocomplete="username" required>
+                </label>
+                <label class="auth-field">
+                    <span>密码</span>
+                    <input id="register-password" type="password" autocomplete="new-password" required>
+                </label>
+                <button id="register-submit-button" class="primary-button auth-submit-button" type="submit">
+                    注册并进入聊天
+                </button>
+            </form>
+        </section>
+    </main>
+
+    <script type="module" src="/web/assets/login.js"></script>
+</body>
+</html>

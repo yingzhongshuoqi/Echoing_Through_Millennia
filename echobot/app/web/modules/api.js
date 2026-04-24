@@ -1,5 +1,6 @@
 export async function requestJson(url, options) {
     const response = await fetch(url, options);
+    handleUnauthorizedResponse(response);
     if (!response.ok) {
         throw await responseToError(response);
     }
@@ -15,6 +16,7 @@ export async function requestChatStream(payload, handlers) {
         body: JSON.stringify(payload),
     });
 
+    handleUnauthorizedResponse(response);
     if (!response.ok) {
         throw await responseToError(response);
     }
@@ -133,4 +135,15 @@ export async function responseToError(response) {
         console.warn("Non-JSON error response", error);
     }
     return new Error(detail);
+}
+
+function handleUnauthorizedResponse(response) {
+    // 会话失效时把用户带回登录页，避免继续停留在不可用的聊天页。
+    if (response.status !== 401) {
+        return;
+    }
+
+    const nextTarget = `${window.location.pathname}${window.location.search}`;
+    const safeNextTarget = encodeURIComponent(nextTarget || "/web");
+    window.location.assign(`/login?next=${safeNextTarget}`);
 }

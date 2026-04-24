@@ -17,6 +17,9 @@
                     <span id="session-label" class="muted-text">会话: default</span>
                 </div>
                 <div class="stage-actions">
+                    <!-- 当前登录用户与退出入口，尽量少改动原聊天页结构。 -->
+                    <span id="user-label" class="muted-text auth-user-label">未登录</span>
+                    <button id="logout-button" class="ghost-button" type="button">退出登录</button>
                     <button id="reset-view-button" class="ghost-button" type="button">重置模型</button>
                     <button id="stop-audio-button" class="ghost-button" type="button">停止语音</button>
                     <button id="stop-agent-button" class="ghost-button stop-agent-button" type="button" disabled>停止任务</button>

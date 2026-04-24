@@ -145,7 +145,12 @@ async function initializePage() {
     addSystemMessage("正在连接 EchoBot…");
 
     try {
-        const config = await requestJson("/api/web/config");
+        // 聊天页初始化前先拿当前登录用户，便于展示登录状态与退出入口。
+        const [currentUser, config] = await Promise.all([
+            requestJson("/api/auth/me"),
+            requestJson("/api/web/config"),
+        ]);
+        updateCurrentUser(currentUser);
         UI_STATE.config = config;
         layout.applyRuntimeConfig(config.runtime);
         const activeLive2DConfig = live2d.applyConfigToUI(config);
@@ -186,6 +191,12 @@ function addSliderResetOnAltClick(element, onReset) {
 function wireBasicEvents() {
     const form = document.getElementById("chat-form");
     form.addEventListener("submit", chat.handleChatSubmit);
+
+    if (DOM.logoutButton) {
+        DOM.logoutButton.addEventListener("click", () => {
+            void handleLogout();
+        });
+    }
 
     DOM.promptInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter" && !event.shiftKey) {
@@ -583,4 +594,25 @@ function updateComposerBackgroundJobState() {
     // Keep the latest reply visible when the composer height changes.
     scheduleMessagesScrollToBottom();
     chat.refreshComposerImages();
+}
+
+function updateCurrentUser(user) {
+    UI_STATE.currentUser = user || null;
+    if (DOM.userLabel) {
+        DOM.userLabel.textContent = user && user.username
+            ? `当前用户：${user.username}`
+            : "未登录";
+    }
+}
+
+async function handleLogout() {
+    try {
+        await requestJson("/api/auth/logout", {
+            method: "POST",
+        });
+    } catch (error) {
+        console.error(error);
+    } finally {
+        window.location.assign("/login");
+    }
 }
