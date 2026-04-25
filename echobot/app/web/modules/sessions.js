@@ -217,12 +217,12 @@ export function createSessionsModule(deps) {
         }
 
         if (!UI_STATE.sessions || UI_STATE.sessions.length === 0) {
-            DOM.sessionSidebarSummary.textContent = "暂无会话";
+            DOM.sessionSidebarSummary.textContent = "还没有会话";
             return;
         }
 
         const currentSessionName = UI_STATE.currentSessionName || UI_STATE.sessions[0].name;
-        DOM.sessionSidebarSummary.textContent = `共 ${UI_STATE.sessions.length} 个会话 · 当前会话：${currentSessionName}`;
+        DOM.sessionSidebarSummary.textContent = `共 ${UI_STATE.sessions.length} 段对话 · 当前：${currentSessionName}`;
     }
 
     function renderSessionList(sessionSummaries) {
@@ -256,11 +256,11 @@ export function createSessionsModule(deps) {
 
         const title = document.createElement("p");
         title.className = "session-empty-title";
-        title.textContent = "还没有可切换的会话。";
+        title.textContent = "先为这段对话留一个位置。";
 
         const description = document.createElement("p");
         description.className = "session-empty-description";
-        description.textContent = "点击上方“新建会话”后，就可以开始一段新的对话，并在这里管理不同会话。";
+        description.textContent = "点击上方“新建会话”，就能开始新的交谈，并把不同主题分开保存。";
 
         empty.appendChild(title);
         empty.appendChild(description);
@@ -391,7 +391,7 @@ export function createSessionsModule(deps) {
             return;
         }
 
-        const rawName = window.prompt("输入新会话名，留空则自动生成：", "");
+        const rawName = window.prompt("想怎么称呼这段对话？留空会自动命名。", "");
         if (rawName === null) {
             return;
         }
@@ -463,7 +463,7 @@ export function createSessionsModule(deps) {
             return;
         }
 
-        const rawName = window.prompt("输入新的会话名：", sessionName);
+        const rawName = window.prompt("为这段对话换个名字：", sessionName);
         if (rawName === null) {
             return;
         }
@@ -508,7 +508,7 @@ export function createSessionsModule(deps) {
         if (UI_STATE.chatBusy || UI_STATE.sessionLoading || !sessionName) {
             return;
         }
-        if (!window.confirm(`确定删除会话“${sessionName}”吗？`)) {
+        if (!window.confirm(`要移除“${sessionName}”这段对话吗？`)) {
             return;
         }
 
@@ -554,7 +554,7 @@ export function createSessionsModule(deps) {
         UI_STATE.currentRoleName = sessionDetail.role_name || "default";
         UI_STATE.currentRouteMode = normalizeRouteMode(sessionDetail.route_mode);
 
-        DOM.sessionLabel.textContent = `会话: ${sessionName}`;
+        DOM.sessionLabel.textContent = `会话：${sessionName}`;
         window.localStorage.setItem("echobot.web.session", sessionName);
         syncRouteModeSelect();
 
@@ -573,12 +573,12 @@ export function createSessionsModule(deps) {
         const messageHistory = normalizeHistory(history);
         if (messageHistory.length === 0) {
             showMessagesEmptyState({
-                eyebrow: "新会话",
+                eyebrow: "新的对话",
                 title: "这段对话还没有开始。",
-                description: "你可以直接输入近况、困惑，或一句想被理解的话，让接下来的回复自然展开。",
+                description: "你可以直接输入近况、困惑，或一句想被理解的话，让接下来的回应自然展开。",
                 tips: [
                     "例如：这几天总有些心烦，不知道该怎么调整。",
-                    "例如：想让我先听你说说今天发生了什么。",
+                    "例如：想先说说今天发生了什么。",
                 ],
             });
             return;

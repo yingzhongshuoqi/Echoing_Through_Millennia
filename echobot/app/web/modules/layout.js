@@ -101,7 +101,7 @@ export function createLayoutModule(deps) {
             DOM.sessionSidebarBackdrop.hidden = !UI_STATE.sessionSidebarOpen;
         }
         if (DOM.sessionSidebarToggle) {
-            DOM.sessionSidebarToggle.textContent = UI_STATE.sessionSidebarOpen ? "隐藏会话" : "会话列表";
+            DOM.sessionSidebarToggle.textContent = UI_STATE.sessionSidebarOpen ? "收起会话" : "会话列表";
             DOM.sessionSidebarToggle.setAttribute("aria-expanded", String(UI_STATE.sessionSidebarOpen));
         }
 
@@ -131,7 +131,7 @@ export function createLayoutModule(deps) {
             DOM.roleSidebarBackdrop.hidden = !UI_STATE.roleSidebarOpen;
         }
         if (DOM.roleSidebarToggle) {
-            DOM.roleSidebarToggle.textContent = UI_STATE.roleSidebarOpen ? "隐藏角色卡" : "角色卡";
+            DOM.roleSidebarToggle.textContent = UI_STATE.roleSidebarOpen ? "收起角色卡" : "角色卡";
             DOM.roleSidebarToggle.setAttribute("aria-expanded", String(UI_STATE.roleSidebarOpen));
         }
 

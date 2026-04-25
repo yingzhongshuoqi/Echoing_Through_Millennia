@@ -143,8 +143,8 @@ async function initializePage() {
     layout.restoreStageBackgroundPanelState();
     layout.restoreStageEffectsPanelState();
     layout.handleSettingsPanelToggle();
-    live2d.setStageMessage("正在加载 Live2D 模型…");
-    addSystemMessage("正在连接 EchoBot…");
+    live2d.setStageMessage("正在载入舞台模型…");
+    addSystemMessage("正在与 EchoBot 建立连接…");
 
     try {
         // 聊天页初始化前先拿当前登录用户，便于展示登录状态与退出入口。
@@ -169,7 +169,7 @@ async function initializePage() {
         traces.resetTracePanel();
 
         setConnectionState("ready", "已连接");
-        setRunStatus("准备就绪");
+        setRunStatus("可以开始对话了");
         setActiveBackgroundJob("");
     } catch (error) {
         console.error(error);
@@ -585,7 +585,7 @@ function updateComposerBackgroundJobState() {
     if (DOM.composerStatusBanner) {
         DOM.composerStatusBanner.hidden = !backgroundJobRunning;
         DOM.composerStatusBanner.textContent = backgroundJobRunning
-            ? "后台任务仍在处理中，输入区会暂时锁定。你可以等待完成，或点击上方“停止任务”结束当前任务。"
+            ? "后台任务仍在继续，这里会暂时锁定输入。你可以等待片刻，或点击上方“停止任务”。"
             : "";
     }
     if (DOM.stopAgentButton) {
@@ -609,19 +609,28 @@ function updateCurrentUser(user) {
     UI_STATE.currentUser = user || null;
     if (DOM.userLabel) {
         DOM.userLabel.textContent = user && user.username
-            ? `当前用户：${user.username}`
+            ? `当前账号：${user.username}`
             : "未登录";
     }
 }
 
 async function handleLogout() {
+    const defaultLabel = DOM.logoutButton ? DOM.logoutButton.textContent : "";
     try {
+        if (DOM.logoutButton) {
+            DOM.logoutButton.disabled = true;
+            DOM.logoutButton.textContent = "退出中…";
+        }
         await requestJson("/api/auth/logout", {
             method: "POST",
         });
     } catch (error) {
         console.error(error);
     } finally {
+        if (DOM.logoutButton) {
+            DOM.logoutButton.disabled = false;
+            DOM.logoutButton.textContent = defaultLabel;
+        }
         window.location.assign("/login");
     }
 }

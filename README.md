@@ -232,6 +232,14 @@ python -m echobot gateway
 
 访问 `http://localhost:8000/web` 打开 Web Console。
 
+### Web 前端入口说明
+
+- `http://localhost:8000/login`
+  登录与注册共用同一入口页，登录状态通过 `HttpOnly Cookie` 维持。
+- `http://localhost:8000/web`
+  聊天工作台入口；未登录访问时会自动跳转回登录页。
+- 前端当前采用统一的东方低饱和设计语言，重点覆盖登录页、聊天主界面、会话侧栏、角色侧栏、消息区与输入区，适合课程项目展示与答辩演示。
+
 ---
 
 ## 工作原理

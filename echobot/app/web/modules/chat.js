@@ -49,7 +49,7 @@ export function createChatModule(deps) {
             UI_STATE.currentSessionName || DEFAULT_SESSION_NAME,
         );
         UI_STATE.currentSessionName = sessionName;
-        DOM.sessionLabel.textContent = `会话: ${sessionName}`;
+        DOM.sessionLabel.textContent = `会话：${sessionName}`;
         window.localStorage.setItem("echobot.web.session", sessionName);
 
         DOM.promptInput.value = "";
@@ -59,7 +59,7 @@ export function createChatModule(deps) {
         resetTracePanel();
         setChatBusy(true);
         const speechSession = UI_STATE.ttsEnabled ? createSpeechSession() : null;
-        setRunStatus("正在请求回复...");
+        setRunStatus("正在整理回复…");
 
         addMessage(
             "user",
@@ -150,7 +150,7 @@ export function createChatModule(deps) {
 
             if (response.job_id && response.status === "running") {
                 setActiveBackgroundJob(response.job_id);
-                setRunStatus("Agent 正在后台处理...");
+                setRunStatus("后台任务正在继续整理回复…");
                 startTracePanel(response.job_id);
 
                 const finalJob = await pollChatJob(response.job_id);
@@ -250,7 +250,7 @@ export function createChatModule(deps) {
         if (DOM.stopAgentButton) {
             DOM.stopAgentButton.disabled = true;
         }
-        setRunStatus("正在停止后台任务...");
+        setRunStatus("正在停止后台任务…");
 
         try {
             const payload = await cancelChatJob(jobId);

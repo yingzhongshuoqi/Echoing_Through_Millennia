@@ -45,6 +45,7 @@ Thumbs.db
 # ===== Logs =====
 *.log
 .tmp-app-*.log
+.tmp/
 
 # ===== Large Model Files =====
 *.onnx

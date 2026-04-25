@@ -10,16 +10,16 @@ const authModeDescription = document.getElementById("auth-mode-description");
 const nextTarget = resolveNextTarget();
 const modeCopy = {
     login: {
-        title: "欢迎回来，继续刚才的对话。",
-        description: "输入已有账号后即可回到聊天主页，继续当前会话与文化陪伴体验。",
-        idleText: "请输入已有账号进行登录。",
-        successText: "登录成功，正在回到聊天主页…",
+        title: "欢迎回来，继续这段对话。",
+        description: "登录后会回到聊天主页，继续当前会话与舞台设置。",
+        idleText: "请输入已有账号信息。",
+        successText: "登录成功，正在回到对话空间…",
     },
     register: {
         title: "先为自己留一个安静的入口。",
-        description: "注册成功后会直接进入聊天主页，开始属于你的新会话。",
-        idleText: "注册成功后会直接进入聊天页面。",
-        successText: "注册成功，正在进入聊天主页…",
+        description: "注册完成后会直接进入聊天主页，开始属于你的新会话。",
+        idleText: "注册完成后会直接进入聊天主页。",
+        successText: "注册成功，正在进入对话空间…",
     },
 };
 
@@ -71,7 +71,7 @@ function switchMode(mode) {
     authModeTitle.textContent = copy.title;
     authModeDescription.textContent = copy.description;
     authStatus.textContent = copy.idleText;
-    authStatus.classList.remove("is-error");
+    authStatus.classList.remove("is-error", "is-success");
 }
 
 async function submitAuthRequest({
@@ -85,7 +85,8 @@ async function submitAuthRequest({
     const trimmedUsername = String(username || "").trim();
     const normalizedPassword = String(password || "").trim();
     if (!trimmedUsername || !normalizedPassword) {
-        authStatus.textContent = "用户名和密码不能为空。";
+        authStatus.textContent = "用户名和密码都需要填写。";
+        authStatus.classList.remove("is-success");
         authStatus.classList.add("is-error");
         return;
     }
@@ -97,7 +98,7 @@ async function submitAuthRequest({
     document.body.dataset.authPending = "true";
     submitButton.textContent = pendingText;
     authStatus.textContent = pendingText;
-    authStatus.classList.remove("is-error");
+    authStatus.classList.remove("is-error", "is-success");
 
     try {
         const response = await fetch(endpoint, {
@@ -117,9 +118,11 @@ async function submitAuthRequest({
         }
 
         authStatus.textContent = successText;
+        authStatus.classList.add("is-success");
         window.location.assign(nextTarget);
     } catch (error) {
-        authStatus.textContent = error.message || "操作失败，请稍后重试。";
+        authStatus.textContent = error.message || "这一步暂时没有完成，请稍后再试。";
+        authStatus.classList.remove("is-success");
         authStatus.classList.add("is-error");
     } finally {
         submitButton.disabled = false;
