@@ -4,6 +4,8 @@ from fastapi import Depends, HTTPException, Request
 
 from ..auth.models import AuthUser
 from .runtime import AppRuntime
+from .services.user_scope import UserAppScope, build_user_app_scope
+from .services.web_console import WebConsoleService
 
 
 def get_app_runtime(request: Request) -> AppRuntime:
@@ -52,3 +54,39 @@ async def get_optional_current_user(
     if not session_token:
         return None
     return await auth_service.get_user_by_token(session_token)
+
+
+def get_user_scope(
+    current_user=Depends(get_current_user),
+    runtime=Depends(get_app_runtime),
+) -> UserAppScope:
+    """为当前登录用户构建一组最小可用的隔离服务。"""
+
+    if (
+        runtime.context is None
+        or runtime.tts_service is None
+        or runtime.asr_service is None
+    ):
+        raise HTTPException(status_code=503, detail="EchoBot runtime is not ready")
+
+    user_storage_root = (
+        runtime.context.workspace
+        / ".echobot"
+        / "users"
+        / f"user-{current_user.id}"
+        / "web_console"
+    )
+    user_web_console_service = WebConsoleService(
+        runtime.context.workspace,
+        runtime.tts_service,
+        runtime.asr_service,
+        storage_root=user_storage_root,
+    )
+    return build_user_app_scope(
+        user=current_user,
+        workspace=runtime.context.workspace,
+        session_store=runtime.context.session_store,
+        agent_session_store=runtime.context.agent_session_store,
+        coordinator=runtime.context.coordinator,
+        web_console_service=user_web_console_service,
+    )

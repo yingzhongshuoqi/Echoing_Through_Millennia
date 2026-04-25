@@ -80,15 +80,19 @@ class WebConsoleService:
         workspace: Path,
         tts_service: TTSService,
         asr_service: ASRService,
+        *,
+        storage_root: Path | None = None,
     ) -> None:
         self._workspace = workspace
         self._tts_service = tts_service
         self._asr_service = asr_service
+        # 允许为登录用户指定独立的 Web 控制台存储目录，避免基础素材互相覆盖。
+        self._storage_root = Path(storage_root) if storage_root is not None else workspace / ".echobot"
         self._runtime_settings_store = RuntimeSettingsStore(
-            workspace / ".echobot" / "runtime_settings.json",
+            self._storage_root / "runtime_settings.json",
         )
-        self._workspace_live2d_root = workspace / ".echobot" / "live2d"
-        self._workspace_stage_background_root = workspace / ".echobot" / "web" / "backgrounds"
+        self._workspace_live2d_root = self._storage_root / "live2d"
+        self._workspace_stage_background_root = self._storage_root / "web" / "backgrounds"
         self._builtin_stage_background_root = (
             Path(__file__).resolve().parent.parent / "builtin_stage_backgrounds"
         )
