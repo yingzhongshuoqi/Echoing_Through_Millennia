@@ -28,6 +28,7 @@ env/
 .echobot/runtime_settings.json
 .echobot/HEARTBEAT.md
 .echobot/live2d/
+.echobot/users/
 
 # ===== IDE =====
 .vscode/
@@ -43,6 +44,7 @@ Thumbs.db
 
 # ===== Logs =====
 *.log
+.tmp-app-*.log
 
 # ===== Large Model Files =====
 *.onnx
