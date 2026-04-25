@@ -53,11 +53,13 @@
 
 html {
     min-height: 100%;
+    height: 100%;
     scroll-behavior: smooth;
 }
 
 body {
     min-height: 100vh;
+    min-height: 100dvh;
     margin: 0;
     font-family: var(--font-sans);
     color: var(--color-text);
@@ -476,6 +478,10 @@ textarea:disabled {
     color: var(--color-danger);
 }
 
+.auth-status.is-success {
+    color: var(--color-success);
+}
+
 .auth-form {
     display: grid;
     gap: 1rem;
@@ -510,18 +516,23 @@ textarea:disabled {
 
 /* 主布局：左舞台右工作区，统一产品化框架。 */
 .console-page {
-    padding: 1.3rem;
+    padding: clamp(0.95rem, 0.9vw + 0.55rem, 1.3rem);
+    overflow: hidden;
 }
 
 .page-shell {
     display: grid;
     grid-template-columns: minmax(380px, 1.02fr) minmax(680px, 1.18fr);
     gap: 1.3rem;
+    height: calc(100dvh - (clamp(0.95rem, 0.9vw + 0.55rem, 1.3rem) * 2));
     min-height: calc(100vh - 2.6rem);
+    min-height: calc(100dvh - (clamp(0.95rem, 0.9vw + 0.55rem, 1.3rem) * 2));
+    align-items: stretch;
 }
 
 .stage-panel,
 .chat-panel {
+    height: 100%;
     min-height: 0;
 }
 
@@ -538,8 +549,9 @@ textarea:disabled {
 .stage-panel-surface {
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr);
-    gap: 1rem;
-    padding: 1.35rem;
+    gap: 0.95rem;
+    padding: clamp(1rem, 0.9vw + 0.55rem, 1.35rem);
+    overflow: hidden;
 }
 
 .stage-header {
@@ -551,14 +563,14 @@ textarea:disabled {
 
 .stage-header-meta {
     display: grid;
-    gap: 0.55rem;
+    gap: 0.42rem;
 }
 
 .stage-title {
     margin: 0;
     font-family: var(--font-serif);
-    font-size: clamp(1.8rem, 2.4vw, 2.6rem);
-    line-height: 1.25;
+    font-size: clamp(1.68rem, 2vw, 2.35rem);
+    line-height: 1.18;
     color: var(--color-ink);
 }
 
@@ -573,6 +585,7 @@ textarea:disabled {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-end;
+    align-content: flex-start;
     gap: 0.65rem;
 }
 
@@ -597,8 +610,8 @@ textarea:disabled {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 1rem;
-    padding: 1.15rem 1.25rem;
+    gap: 0.9rem;
+    padding: 1rem 1.05rem;
     border-radius: var(--radius-md);
     background:
         linear-gradient(135deg, rgba(245, 250, 246, 0.72), rgba(254, 248, 240, 0.92));
@@ -607,8 +620,9 @@ textarea:disabled {
 
 .stage-hero-copy {
     margin: 0;
-    max-width: 28rem;
-    line-height: 1.8;
+    max-width: 25rem;
+    font-size: 0.96rem;
+    line-height: 1.68;
     color: var(--color-text-soft);
 }
 
@@ -621,7 +635,8 @@ textarea:disabled {
 
 .live2d-stage {
     position: relative;
-    min-height: 560px;
+    min-height: clamp(350px, 46vh, 560px);
+    height: 100%;
     overflow: hidden;
     border-radius: calc(var(--radius-xl) - 8px);
     border: 1px solid rgba(89, 117, 105, 0.08);
@@ -696,7 +711,7 @@ textarea:disabled {
     display: flex;
     justify-content: space-between;
     gap: 0.8rem;
-    font-size: 0.84rem;
+    font-size: 0.81rem;
     color: rgba(255, 250, 243, 0.9);
     text-shadow: 0 1px 8px rgba(32, 41, 37, 0.28);
 }
@@ -720,16 +735,17 @@ textarea:disabled {
 .chat-main {
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr);
-    gap: 1rem;
-    padding: 1.3rem;
+    gap: 0.9rem;
+    padding: clamp(1rem, 0.9vw + 0.55rem, 1.3rem);
+    overflow: hidden;
 }
 
 .chat-topbar {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 1rem;
-    padding: 1.15rem 1.25rem;
+    gap: 0.9rem;
+    padding: 1rem 1.05rem;
     border-radius: var(--radius-lg);
     background:
         linear-gradient(135deg, rgba(255, 252, 246, 0.92), rgba(244, 250, 246, 0.72));
@@ -738,22 +754,23 @@ textarea:disabled {
 
 .chat-topbar-copy {
     display: grid;
-    gap: 0.55rem;
-    max-width: 40rem;
+    gap: 0.42rem;
+    max-width: 35rem;
 }
 
 .chat-topbar-title {
     margin: 0;
     font-family: var(--font-serif);
-    font-size: 1.45rem;
-    line-height: 1.45;
+    font-size: clamp(1.18rem, 1.45vw, 1.4rem);
+    line-height: 1.34;
     color: var(--color-ink);
 }
 
 .chat-topbar-description {
     margin: 0;
+    font-size: 0.95rem;
     color: var(--color-text-soft);
-    line-height: 1.72;
+    line-height: 1.62;
 }
 
 .chat-topbar-actions {
@@ -767,7 +784,7 @@ textarea:disabled {
     min-height: 0;
     display: grid;
     grid-template-rows: minmax(0, 1fr) auto;
-    gap: 1rem;
+    gap: 0.9rem;
 }
 
 .panel-section,
@@ -778,6 +795,14 @@ textarea:disabled {
     border: 1px solid rgba(89, 117, 105, 0.10);
     background: rgba(255, 252, 246, 0.82);
     box-shadow: var(--color-shadow-soft);
+}
+
+.messages-section {
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0.85rem;
+    overflow: hidden;
 }
 
 /* 侧边栏：保留功能抽屉模式，不改现有开合逻辑。 */
@@ -814,8 +839,8 @@ textarea:disabled {
     height: 100%;
     display: grid;
     grid-template-rows: auto auto auto minmax(0, 1fr);
-    gap: 1rem;
-    padding: 1.15rem;
+    gap: 0.9rem;
+    padding: 1.05rem;
     background: rgba(255, 251, 243, 0.96);
     backdrop-filter: blur(16px);
 }
@@ -1203,10 +1228,10 @@ textarea:disabled {
 
 .message {
     display: grid;
-    gap: 0.65rem;
+    gap: 0.55rem;
     max-width: min(86%, 52rem);
-    padding: 1rem 1.15rem;
-    border-radius: 24px;
+    padding: 0.95rem 1.05rem;
+    border-radius: 22px;
     box-shadow: var(--color-shadow-soft);
 }
 
@@ -1233,15 +1258,16 @@ textarea:disabled {
 }
 
 .message-meta {
-    font-size: 0.8rem;
-    letter-spacing: 0.08em;
+    font-size: 0.76rem;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: inherit;
     opacity: 0.7;
 }
 
 .message-text {
-    line-height: 1.85;
+    font-size: 0.97rem;
+    line-height: 1.78;
     color: inherit;
 }
 
@@ -1408,8 +1434,8 @@ textarea:disabled {
 /* 输入区：突出稳定、平静、连续输入体验。 */
 .composer {
     display: grid;
-    gap: 1rem;
-    padding: 1.1rem;
+    gap: 0.9rem;
+    padding: 1rem 1.05rem;
 }
 
 .composer-header {
@@ -1425,7 +1451,7 @@ textarea:disabled {
 }
 
 #prompt-input {
-    min-height: 144px;
+    min-height: 132px;
     padding: 1.05rem 1.1rem;
     border-radius: 24px;
     background: rgba(255, 253, 248, 0.96);
@@ -1802,7 +1828,7 @@ body[data-auth-pending="true"] .auth-tab-button:not(.is-active) {
 }
 
 .composer-status-banner::before {
-    content: "状态提示";
+    content: "当前提醒";
     display: inline-block;
     margin-right: 0.65rem;
     font-size: 0.82rem;
@@ -1973,6 +1999,13 @@ body[data-auth-pending="true"] .auth-tab-button:not(.is-active) {
     min-width: 108px;
 }
 
+.primary-button:active:not(:disabled),
+.ghost-button:active:not(:disabled),
+.session-card-main:active:not(:disabled),
+.session-card-action:active:not(:disabled) {
+    transform: translateY(0);
+}
+
 .relic-card,
 .emotion-badge,
 .dyad-badge,
@@ -1988,9 +2021,73 @@ body[data-auth-pending="true"] .auth-tab-button:not(.is-active) {
         grid-template-columns: minmax(320px, 0.94fr) minmax(640px, 1.16fr);
     }
 
+    .chat-topbar-copy {
+        max-width: 31rem;
+    }
+
     .stage-background-transform-grid,
     .stage-effects-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-height: 900px) {
+    .stage-title {
+        font-size: clamp(1.56rem, 1.8vw, 2.08rem);
+    }
+
+    .live2d-stage {
+        min-height: clamp(310px, 40vh, 460px);
+    }
+
+    .chat-topbar {
+        padding: 0.9rem 0.95rem;
+    }
+
+    .chat-topbar-title {
+        font-size: 1.2rem;
+    }
+
+    .chat-topbar-description,
+    .stage-hero-copy,
+    .messages-subtitle {
+        font-size: 0.92rem;
+        line-height: 1.58;
+    }
+
+    .composer {
+        padding: 0.92rem 0.95rem;
+    }
+
+    #prompt-input {
+        min-height: 112px;
+    }
+}
+
+@media (max-height: 820px) {
+    .console-page {
+        padding: 0.8rem;
+    }
+
+    .stage-panel-surface,
+    .chat-main {
+        padding: 0.95rem;
+    }
+
+    .stage-hero-card {
+        padding: 0.9rem 0.95rem;
+    }
+
+    .live2d-stage {
+        min-height: clamp(270px, 36vh, 360px);
+    }
+
+    .sidebar-shell {
+        padding: 0.95rem;
+    }
+
+    #prompt-input {
+        min-height: 100px;
     }
 }
 

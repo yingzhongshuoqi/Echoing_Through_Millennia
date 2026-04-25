@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>EchoBot · 文化情绪陪伴工作台</title>
+    <title>EchoBot · 文化陪伴工作台</title>
     <link rel="icon" href="/favicon.ico" type="image/svg+xml">
     <link rel="stylesheet" href="/web/assets/styles.css">
 </head>
@@ -13,8 +13,8 @@
             <div class="stage-panel-surface">
                 <div class="stage-header">
                     <div class="stage-header-meta">
-                        <p class="eyebrow">EchoBot · 情绪陪伴工作台</p>
-                        <h1 class="stage-title">让文化意象陪你一起整理情绪。</h1>
+                        <p class="eyebrow">EchoBot · 文化陪伴工作台</p>
+                        <h1 class="stage-title">让文化意象陪你慢慢整理情绪。</h1>
                         <div class="stage-status-row">
                             <span id="connection-badge" class="status-badge status-idle">初始化中</span>
                             <span id="session-label" class="muted-text">会话：default</span>
@@ -34,7 +34,7 @@
                     <div>
                         <p class="eyebrow">舞台区域</p>
                         <p class="stage-hero-copy">
-                            这里承载角色、背景与光影效果，也为课程展示提供更完整的沉浸式视觉入口。
+                            这里承载角色、背景与光影效果，也让课程展示拥有更完整的沉浸入口。
                         </p>
                     </div>
                     <div class="stage-hero-tags">
@@ -67,7 +67,7 @@
                     <div class="session-sidebar-header">
                         <div>
                             <p class="section-title">会话列表</p>
-                            <span id="session-sidebar-summary" class="muted-text">准备加载会话…</span>
+                            <span id="session-sidebar-summary" class="muted-text">正在整理会话…</span>
                         </div>
                         <button
                             id="session-sidebar-close"
@@ -90,7 +90,7 @@
                         </button>
                     </div>
                     <div id="session-sidebar-status" class="muted-text session-sidebar-status">
-                        正在加载会话…
+                        正在整理会话…
                     </div>
                     <div id="session-list" class="session-list"></div>
                 </div>
@@ -108,7 +108,7 @@
                     <div class="role-sidebar-header">
                         <div>
                             <p class="section-title">角色入口</p>
-                            <span id="role-status" class="muted-text role-sidebar-status">正在加载角色卡…</span>
+                            <span id="role-status" class="muted-text role-sidebar-status">正在整理角色卡…</span>
                         </div>
                         <button
                             id="role-sidebar-close"
@@ -173,9 +173,9 @@
                 <header class="chat-topbar">
                     <div class="chat-topbar-copy">
                         <p class="eyebrow">对话空间</p>
-                        <h2 class="chat-topbar-title">把会话、角色、语音与舞台控制收进同一处工作流。</h2>
+                        <h2 class="chat-topbar-title">把会话、角色与舞台控制收在同一处。</h2>
                         <p class="chat-topbar-description">
-                            在这里继续你的聊天，同时保留会话管理、角色编辑、语音播报与展示控制能力。
+                            在这里继续对话，同时随时查看会话、角色、语音和展示设置。
                         </p>
                     </div>
                     <div class="chat-topbar-actions">
@@ -191,7 +191,7 @@
                             class="ghost-button ghost-button-compact"
                             type="button"
                         >
-                            角色入口
+                            角色卡
                         </button>
                     </div>
                 </header>
@@ -200,7 +200,7 @@
                     <summary class="settings-summary">
                         <div class="settings-summary-main">
                             <p class="section-title">控制面板</p>
-                            <span class="muted-text">角色、语音、舞台与运行参数都集中在这里。</span>
+                            <span class="muted-text">角色、语音、舞台与运行参数集中在这里。</span>
                         </div>
                         <div class="panel-header-actions settings-summary-actions">
                             <span class="settings-summary-icon" aria-hidden="true"></span>
@@ -584,9 +584,9 @@
                         <div class="messages-header">
                             <div>
                                 <p class="section-title">对话</p>
-                                <p class="messages-subtitle">从此刻的感受开始，再慢慢走向回答。</p>
+                                <p class="messages-subtitle">从此刻的感受开始，再慢慢走向回应。</p>
                             </div>
-                            <span id="run-status" class="muted-text message-status">等待输入</span>
+                            <span id="run-status" class="muted-text message-status">静待开场</span>
                         </div>
                         <details id="agent-trace-panel" class="agent-trace-panel" hidden>
                             <summary class="agent-trace-summary">
@@ -606,12 +606,12 @@
                     <form id="chat-form" class="composer">
                         <div class="composer-header">
                             <label class="composer-label" for="prompt-input">输入消息</label>
-                            <span class="muted-text">适合提问、倾诉、整理情绪或补充背景。</span>
+                            <span class="muted-text">适合提问、倾诉、整理情绪，或补充一些背景。</span>
                         </div>
                         <textarea
                             id="prompt-input"
                             rows="4"
-                            placeholder="例如：这几天总觉得有些疲惫，想找一个温和一点的方式理清思绪。"
+                            placeholder="例如：这几天总觉得有些疲惫，想找一种温和一点的方式理清思绪。"
                         ></textarea>
                         <div id="composer-images" class="composer-images" hidden></div>
                         <input
@@ -628,7 +628,7 @@
                             aria-live="polite"
                             hidden
                         >
-                            后台任务运行中，暂时无法发送文本或开始录音。可点击上方“停止任务”终止当前任务。
+                            后台任务仍在继续，这里会暂时锁定输入。若想立即中止，可点击上方“停止任务”。
                         </div>
                         <div class="composer-actions">
                             <span class="muted-text">Shift + Enter 换行</span>
