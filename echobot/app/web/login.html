@@ -3,22 +3,48 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>EchoBot 登录</title>
+    <title>EchoBot · 文化情绪陪伴</title>
     <link rel="icon" href="/favicon.ico" type="image/svg+xml">
     <link rel="stylesheet" href="/web/assets/styles.css">
 </head>
-<body class="auth-page">
+<body class="auth-page" data-auth-mode="login">
     <main class="auth-shell">
         <section class="auth-hero">
-            <p class="eyebrow">EchoBot</p>
-            <h1>登录后继续进入疗愈对话</h1>
-            <p class="auth-description">
-                这是当前项目的最小可运行登录页。
-                你可以直接注册新账号，或使用已有账号登录后进入原聊天页面。
-            </p>
+            <div class="auth-hero-copy">
+                <p class="eyebrow">EchoBot · 中华传统文化情绪陪伴平台</p>
+                <h1 class="auth-hero-title">在一段安静的对话里，让情绪与文化重新相遇。</h1>
+                <p class="auth-description">
+                    这里不是匆忙应答的工具页，而是一处适合停下来的数字空间。
+                    你可以从当下的情绪出发，在聊天、意象与文化线索中，慢慢整理自己的感受。
+                </p>
+            </div>
+
+            <div class="auth-hero-panels">
+                <!-- 使用静态文案建立课程项目展示所需的品牌氛围。 -->
+                <article class="auth-story-card">
+                    <p class="auth-story-label">平台气质</p>
+                    <p class="auth-story-text">
+                        以米白与浅青为底，以留白、层次与柔和阴影营造陪伴感，
+                        让登录与进入对话的过程本身，也成为体验的一部分。
+                    </p>
+                </article>
+                <ul class="auth-feature-list">
+                    <li>保留流式对话与情绪分析能力</li>
+                    <li>延续中华传统文化意象的陪伴表达</li>
+                    <li>用更完整的产品界面承载课程展示</li>
+                </ul>
+            </div>
         </section>
 
         <section class="auth-card" aria-label="登录与注册">
+            <div class="auth-card-header">
+                <p class="eyebrow">账号入口</p>
+                <h2 id="auth-mode-title" class="auth-card-title">欢迎回来，继续刚才的对话。</h2>
+                <p id="auth-mode-description" class="auth-card-description">
+                    输入已有账号后即可回到聊天主页，继续当前会话与文化陪伴体验。
+                </p>
+            </div>
+
             <div class="auth-tabs" role="tablist" aria-label="登录方式切换">
                 <button
                     id="login-tab-button"
@@ -46,15 +72,15 @@
                 请输入用户名和密码。
             </p>
 
-            <!-- 登录表单与注册表单共用一套脚本，通过标签切换显示。 -->
+            <!-- 登录与注册共用一个入口页，通过标签切换两组表单。 -->
             <form id="login-form" class="auth-form">
                 <label class="auth-field">
                     <span>用户名</span>
-                    <input id="login-username" type="text" autocomplete="username" required>
+                    <input id="login-username" type="text" autocomplete="username" placeholder="例如：lin" required>
                 </label>
                 <label class="auth-field">
                     <span>密码</span>
-                    <input id="login-password" type="password" autocomplete="current-password" required>
+                    <input id="login-password" type="password" autocomplete="current-password" placeholder="请输入密码" required>
                 </label>
                 <button id="login-submit-button" class="primary-button auth-submit-button" type="submit">
                     登录并进入聊天
@@ -64,16 +90,21 @@
             <form id="register-form" class="auth-form" hidden>
                 <label class="auth-field">
                     <span>用户名</span>
-                    <input id="register-username" type="text" autocomplete="username" required>
+                    <input id="register-username" type="text" autocomplete="username" placeholder="设置一个用于登录的名称" required>
                 </label>
                 <label class="auth-field">
                     <span>密码</span>
-                    <input id="register-password" type="password" autocomplete="new-password" required>
+                    <input id="register-password" type="password" autocomplete="new-password" placeholder="设置安全密码" required>
                 </label>
                 <button id="register-submit-button" class="primary-button auth-submit-button" type="submit">
                     注册并进入聊天
                 </button>
             </form>
+
+            <div class="auth-footnote">
+                <p>登录后会通过安全的 HttpOnly Cookie 维持会话状态。</p>
+                <p>未登录访问聊天主页时会自动回到这里。</p>
+            </div>
         </section>
     </main>
 

@@ -15,9 +15,15 @@ export function createLayoutModule(deps) {
         }
 
         let actions = sessionToggle.parentElement;
-        if (!actions || !actions.classList.contains("panel-header-actions")) {
+        const isCompatibleContainer = actions
+            && (
+                actions.classList.contains("panel-header-actions")
+                || actions.classList.contains("chat-topbar-actions")
+            );
+        if (!isCompatibleContainer) {
             actions = document.createElement("div");
-            actions.className = "panel-header-actions";
+            // 兼容新的顶部操作区布局，避免脚本运行时打乱按钮顺序。
+            actions.className = "panel-header-actions chat-topbar-actions";
             sessionToggle.insertAdjacentElement("afterend", actions);
             actions.appendChild(sessionToggle);
         }
