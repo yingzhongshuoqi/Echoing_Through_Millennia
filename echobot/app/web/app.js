@@ -17,6 +17,7 @@ import {
     initializeMessageInteractions,
     removeMessage,
     scheduleMessagesScrollToBottom,
+    showMessagesEmptyState,
     updateMessage,
 } from "./modules/messages.js";
 import { createRolesModule } from "./modules/roles.js";
@@ -79,6 +80,7 @@ const sessions = createSessionsModule({
     formatTimestamp: formatTimestamp,
     normalizeSessionName: normalizeSessionName,
     requestJson: requestJson,
+    showMessagesEmptyState: showMessagesEmptyState,
     speakText: tts.speakText,
     setRunStatus: setRunStatus,
     stopSpeechPlayback: tts.stopSpeechPlayback,
@@ -523,6 +525,8 @@ function setChatBusy(isBusy) {
     UI_STATE.chatBusy = isBusy;
     if (DOM.sendButton) {
         DOM.sendButton.disabled = isBusy;
+        DOM.sendButton.textContent = isBusy ? "生成中…" : "发送";
+        DOM.sendButton.setAttribute("aria-busy", String(isBusy));
     }
     if (DOM.composerImageButton) {
         DOM.composerImageButton.disabled = isBusy || Boolean(UI_STATE.activeChatJobId);
@@ -558,10 +562,12 @@ function setActiveBackgroundJob(jobId) {
 function setConnectionState(kind, text) {
     DOM.connectionBadge.className = `status-badge status-${kind}`;
     DOM.connectionBadge.textContent = text;
+    DOM.connectionBadge.dataset.state = kind;
 }
 
 function setRunStatus(text) {
     DOM.runStatus.textContent = text;
+    DOM.runStatus.dataset.tone = inferStatusTone(text);
 }
 
 function updateComposerBackgroundJobState() {
@@ -578,6 +584,9 @@ function updateComposerBackgroundJobState() {
     }
     if (DOM.composerStatusBanner) {
         DOM.composerStatusBanner.hidden = !backgroundJobRunning;
+        DOM.composerStatusBanner.textContent = backgroundJobRunning
+            ? "后台任务仍在处理中，输入区会暂时锁定。你可以等待完成，或点击上方“停止任务”结束当前任务。"
+            : "";
     }
     if (DOM.stopAgentButton) {
         DOM.stopAgentButton.disabled = !backgroundJobRunning;
@@ -615,4 +624,21 @@ async function handleLogout() {
     } finally {
         window.location.assign("/login");
     }
+}
+
+function inferStatusTone(text) {
+    const value = String(text || "").trim();
+    if (!value) {
+        return "idle";
+    }
+    if (/(失败|错误|异常|超时|中断)/.test(value)) {
+        return "error";
+    }
+    if (/(完成|就绪|成功|已连接|已加载|已切换|已保存|已新建|已删除)/.test(value)) {
+        return "success";
+    }
+    if (/(正在|加载|生成|请求|处理中|连接|刷新|保存|停止)/.test(value)) {
+        return "loading";
+    }
+    return "idle";
 }

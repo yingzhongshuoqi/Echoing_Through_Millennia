@@ -20,6 +20,7 @@ export function createSessionsModule(deps) {
         formatTimestamp,
         normalizeSessionName,
         requestJson,
+        showMessagesEmptyState,
         speakText,
         setRunStatus,
         stopSpeechPlayback,
@@ -229,6 +230,12 @@ export function createSessionsModule(deps) {
             return;
         }
 
+        if (!sessionSummaries || sessionSummaries.length === 0) {
+            DOM.sessionList.innerHTML = "";
+            DOM.sessionList.appendChild(buildSessionEmptyState());
+            return;
+        }
+
         DOM.sessionList.innerHTML = "";
         if (!sessionSummaries || sessionSummaries.length === 0) {
             const empty = document.createElement("p");
@@ -241,6 +248,23 @@ export function createSessionsModule(deps) {
         sessionSummaries.forEach((sessionSummary) => {
             DOM.sessionList.appendChild(buildSessionCard(sessionSummary));
         });
+    }
+
+    function buildSessionEmptyState() {
+        const empty = document.createElement("section");
+        empty.className = "session-empty session-empty-card";
+
+        const title = document.createElement("p");
+        title.className = "session-empty-title";
+        title.textContent = "还没有可切换的会话。";
+
+        const description = document.createElement("p");
+        description.className = "session-empty-description";
+        description.textContent = "点击上方“新建会话”后，就可以开始一段新的对话，并在这里管理不同会话。";
+
+        empty.appendChild(title);
+        empty.appendChild(description);
+        return empty;
     }
 
     function buildSessionCard(sessionSummary) {
@@ -548,6 +572,18 @@ export function createSessionsModule(deps) {
 
         const messageHistory = normalizeHistory(history);
         if (messageHistory.length === 0) {
+            showMessagesEmptyState({
+                eyebrow: "新会话",
+                title: "这段对话还没有开始。",
+                description: "你可以直接输入近况、困惑，或一句想被理解的话，让接下来的回复自然展开。",
+                tips: [
+                    "例如：这几天总有些心烦，不知道该怎么调整。",
+                    "例如：想让我先听你说说今天发生了什么。",
+                ],
+            });
+            return;
+        }
+        if (messageHistory.length === 0) {
             addSystemMessage("当前会话还没有消息，开始聊吧。");
             return;
         }
@@ -568,27 +604,38 @@ export function createSessionsModule(deps) {
             return {
                 kind: "user",
                 label: message.name || "你",
-                options: { renderMode: "plain" },
+                options: {
+                    renderMode: "plain",
+                    showMeta: true,
+                },
             };
         }
         if (message.role === "assistant") {
             return {
                 kind: "assistant",
                 label: message.name || "Echo",
-                options: {},
+                options: {
+                    showMeta: true,
+                },
             };
         }
         if (message.role === "system") {
             return {
                 kind: "system",
                 label: message.name || "系统",
-                options: { renderMode: "plain" },
+                options: {
+                    renderMode: "plain",
+                    showMeta: true,
+                },
             };
         }
         return {
             kind: "system",
             label: message.name || message.role || "记录",
-            options: { renderMode: "plain" },
+            options: {
+                renderMode: "plain",
+                showMeta: true,
+            },
         };
     }
 

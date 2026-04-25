@@ -11,6 +11,17 @@ import {
 import { buildMarkdownFragment } from "./markdown.js";
 
 let pendingScrollFrameId = 0;
+let messagesEmptyState = null;
+
+const DEFAULT_EMPTY_STATE = {
+    eyebrow: "当前会话",
+    title: "从一段轻声的提问开始。",
+    description: "这里会保留你的对话、流式回复和文化陪伴内容。你可以先说近况，也可以直接提出想被回应的情绪。",
+    tips: [
+        "可以描述今天最明显的一种感受。",
+        "也可以补充一个困扰你的具体场景。",
+    ],
+};
 
 export function addMessage(kind, content, label, options = {}) {
     const messageId = `msg-${++UI_STATE.messageCounter}`;
@@ -24,6 +35,10 @@ export function addMessage(kind, content, label, options = {}) {
         container.setAttribute("aria-live", "polite");
     }
 
+    messagesEmptyState = null;
+    clearMessagesEmptyState();
+    applyMessageState(container, options);
+
     const body = document.createElement("div");
     body.className = "message-text";
     renderMessageBody(body, kind, content, options);
@@ -36,8 +51,11 @@ export function addMessage(kind, content, label, options = {}) {
     return messageId;
 }
 
-export function addSystemMessage(text) {
-    addMessage("system", text, "Status");
+export function addSystemMessage(text, options = {}) {
+    addMessage("system", text, "状态", {
+        renderMode: "plain",
+        ...options,
+    });
 }
 
 export function updateMessage(messageId, content, label, options = {}) {
@@ -49,6 +67,7 @@ export function updateMessage(messageId, content, label, options = {}) {
     const body = container.querySelector(".message-text");
     const kind = container.dataset.messageKind || "assistant";
     container.setAttribute("aria-label", resolveMessageAriaLabel(kind, label));
+    applyMessageState(container, options);
     syncMessageMeta(container, label, options);
     if (body) {
         renderMessageBody(body, kind, content, options);
@@ -61,6 +80,14 @@ export function clearMessages() {
     clearMathTypesetting(DOM.messages);
     DOM.messages.innerHTML = "";
     UI_STATE.messageCounter = 0;
+}
+
+export function showMessagesEmptyState(options = {}) {
+    messagesEmptyState = {
+        ...DEFAULT_EMPTY_STATE,
+        ...(options || {}),
+    };
+    renderMessagesEmptyState();
 }
 
 export function scheduleMessagesScrollToBottom() {
@@ -81,6 +108,7 @@ export function removeMessage(messageId) {
     }
     clearMathTypesetting(container);
     container.remove();
+    syncMessagesEmptyState();
 }
 
 export function initializeMessageInteractions() {
@@ -123,6 +151,90 @@ function syncMessageMeta(container, label, options = {}) {
     }
 }
 
+function applyMessageState(container, options = {}) {
+    const state = String(options.state || "ready").trim().toLowerCase();
+    const tone = String(options.tone || "").trim().toLowerCase();
+
+    container.dataset.messageState = state || "ready";
+    if (tone) {
+        container.dataset.messageTone = tone;
+    } else {
+        delete container.dataset.messageTone;
+    }
+
+    if (state === "loading") {
+        container.setAttribute("aria-busy", "true");
+    } else {
+        container.removeAttribute("aria-busy");
+    }
+}
+
+function renderMessagesEmptyState() {
+    if (!DOM.messages) {
+        return;
+    }
+
+    clearMessagesEmptyState();
+    if (DOM.messages.querySelector(".message")) {
+        return;
+    }
+
+    const state = messagesEmptyState || DEFAULT_EMPTY_STATE;
+    const container = document.createElement("section");
+    container.className = "messages-empty-state";
+    container.dataset.emptyState = "true";
+
+    const eyebrow = document.createElement("p");
+    eyebrow.className = "messages-empty-eyebrow";
+    eyebrow.textContent = String(state.eyebrow || DEFAULT_EMPTY_STATE.eyebrow);
+
+    const title = document.createElement("h3");
+    title.className = "messages-empty-title";
+    title.textContent = String(state.title || DEFAULT_EMPTY_STATE.title);
+
+    const description = document.createElement("p");
+    description.className = "messages-empty-description";
+    description.textContent = String(state.description || DEFAULT_EMPTY_STATE.description);
+
+    container.appendChild(eyebrow);
+    container.appendChild(title);
+    container.appendChild(description);
+
+    const tips = Array.isArray(state.tips) ? state.tips.filter(Boolean) : [];
+    if (tips.length > 0) {
+        const tipsList = document.createElement("ul");
+        tipsList.className = "messages-empty-tips";
+        tips.forEach((tip) => {
+            const item = document.createElement("li");
+            item.textContent = String(tip);
+            tipsList.appendChild(item);
+        });
+        container.appendChild(tipsList);
+    }
+
+    DOM.messages.appendChild(container);
+}
+
+function clearMessagesEmptyState() {
+    const placeholder = DOM.messages?.querySelector("[data-empty-state='true']");
+    if (placeholder) {
+        placeholder.remove();
+    }
+}
+
+function syncMessagesEmptyState() {
+    if (!DOM.messages) {
+        return;
+    }
+    if (DOM.messages.querySelector(".message")) {
+        clearMessagesEmptyState();
+        return;
+    }
+    if (messagesEmptyState) {
+        renderMessagesEmptyState();
+    }
+}
+
 function scrollMessagesToBottom() {
     if (!DOM.messages) {
         return;
@@ -138,15 +250,15 @@ function resolveMessageAriaLabel(kind, label) {
     }
 
     if (kind === "user") {
-        return "Your message";
+        return "你的消息";
     }
     if (kind === "assistant") {
-        return "Echo reply";
+        return "Echo 回复";
     }
     if (kind === "system") {
-        return "Status";
+        return "状态提示";
     }
-    return "Message";
+    return "消息";
 }
 
 function renderMessageBody(element, kind, content, options = {}) {
@@ -162,7 +274,7 @@ function renderMessageBody(element, kind, content, options = {}) {
         renderMarkdownBody(element, normalizedContent);
         return;
     }
-    renderPlainTextBody(element, normalizedContent);
+    renderPlainTextBody(element, normalizedContent, options);
 }
 
 function resolveMessageRenderMode(kind, options) {
@@ -175,9 +287,25 @@ function resolveMessageRenderMode(kind, options) {
     return kind === "assistant" ? "markdown" : "plain";
 }
 
-function renderPlainTextBody(element, text) {
+function renderPlainTextBody(element, text, options = {}) {
+    const safeText = String(text || "");
     element.className = "message-text message-text-plain";
-    element.textContent = String(text || "");
+
+    if (options.state === "loading") {
+        const content = document.createElement("div");
+        content.className = "message-loading-inline";
+        if (safeText.trim()) {
+            const label = document.createElement("span");
+            label.className = "message-loading-text";
+            label.textContent = safeText;
+            content.appendChild(label);
+        }
+        content.appendChild(buildLoadingDots());
+        element.replaceChildren(content);
+        return;
+    }
+
+    element.textContent = safeText;
 }
 
 function renderMarkdownBody(element, text) {
@@ -257,6 +385,14 @@ function buildImageBlock(imageUrl) {
     previewButton.appendChild(image);
     block.appendChild(previewButton);
     return block;
+}
+
+function buildLoadingDots() {
+    const dots = document.createElement("span");
+    dots.className = "message-streaming-dots";
+    dots.setAttribute("aria-hidden", "true");
+    dots.innerHTML = "<span></span><span></span><span></span>";
+    return dots;
 }
 
 function handleMessageAreaClick(event) {

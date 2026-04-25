@@ -90,7 +90,12 @@ async function submitAuthRequest({
         return;
     }
 
+    const defaultButtonText = submitButton.textContent;
     submitButton.disabled = true;
+    loginTabButton.disabled = true;
+    registerTabButton.disabled = true;
+    document.body.dataset.authPending = "true";
+    submitButton.textContent = pendingText;
     authStatus.textContent = pendingText;
     authStatus.classList.remove("is-error");
 
@@ -118,6 +123,10 @@ async function submitAuthRequest({
         authStatus.classList.add("is-error");
     } finally {
         submitButton.disabled = false;
+        submitButton.textContent = defaultButtonText;
+        loginTabButton.disabled = false;
+        registerTabButton.disabled = false;
+        delete document.body.dataset.authPending;
     }
 }
 

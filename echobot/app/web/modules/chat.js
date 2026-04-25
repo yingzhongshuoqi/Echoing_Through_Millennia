@@ -68,13 +68,20 @@ export function createChatModule(deps) {
                 composerImages.map((image) => image.dataUrl),
             ),
             "你",
-            { renderMode: "plain" },
+            {
+                renderMode: "plain",
+                showMeta: true,
+            },
         );
         let assistantMessageId = addMessage(
             "assistant",
             "...",
-            "Echo",
-            { renderMode: "plain" },
+            "回应生成中",
+            {
+                renderMode: "plain",
+                showMeta: true,
+                state: "loading",
+            },
         );
         let streamedText = "";
 
@@ -95,8 +102,12 @@ export function createChatModule(deps) {
                         updateMessage(
                             assistantMessageId,
                             streamedText || "...",
-                            "Echo",
-                            { renderMode: "plain" },
+                            "回应生成中",
+                            {
+                                renderMode: "plain",
+                                showMeta: true,
+                                state: "loading",
+                            },
                         );
                         queueSpeechSessionText(speechSession, delta);
                     },
@@ -145,9 +156,13 @@ export function createChatModule(deps) {
                 const finalJob = await pollChatJob(response.job_id);
                 finalText = finalJob.response || finalText || "任务已结束，但没有返回内容。";
                 if (assistantMessageId) {
-                    updateMessage(assistantMessageId, finalText, "Echo");
+                    updateMessage(assistantMessageId, finalText, "Echo", {
+                        showMeta: true,
+                    });
                 } else {
-                    assistantMessageId = addMessage("assistant", finalText, "Echo");
+                    assistantMessageId = addMessage("assistant", finalText, "Echo", {
+                        showMeta: true,
+                    });
                 }
 
                 await startupSpeech;
