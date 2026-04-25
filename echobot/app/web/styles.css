@@ -1811,6 +1811,177 @@ body[data-auth-pending="true"] .auth-tab-button:not(.is-active) {
     text-transform: uppercase;
 }
 
+/* 第二轮视觉精修：统一侧栏、会话卡片、角色预览与输入交互。 */
+.stage-actions .ghost-button {
+    background: rgba(255, 252, 246, 0.88);
+}
+
+.stop-agent-button.is-active {
+    color: var(--color-danger);
+    border-color: rgba(184, 93, 83, 0.18);
+    background: rgba(255, 244, 241, 0.94);
+}
+
+.user-chip {
+    font-weight: 600;
+    color: var(--color-ink);
+    background: linear-gradient(135deg, rgba(255, 252, 246, 0.98), rgba(232, 240, 234, 0.88));
+}
+
+.sidebar-shell {
+    min-height: 0;
+}
+
+.session-sidebar-status,
+.role-sidebar-status {
+    padding-inline: 0.1rem;
+}
+
+.session-list {
+    min-height: 0;
+    overflow: auto;
+    padding-right: 0.2rem;
+    scrollbar-gutter: stable;
+}
+
+.session-list::-webkit-scrollbar {
+    width: 10px;
+}
+
+.session-list::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(110, 125, 117, 0.20);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.session-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.session-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: linear-gradient(180deg, rgba(89, 117, 105, 0.9), rgba(185, 151, 86, 0.5));
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.session-card:hover::before,
+.session-card:focus-within::before,
+.session-card-active::before {
+    opacity: 1;
+}
+
+.session-card-main,
+.session-card-action,
+.role-toolbar .ghost-button,
+.session-sidebar-toolbar .ghost-button,
+.session-sidebar-toolbar .primary-button {
+    transition:
+        transform var(--transition-fast),
+        box-shadow var(--transition-fast),
+        border-color var(--transition-fast),
+        background var(--transition-fast);
+}
+
+.session-card-main {
+    width: 100%;
+    border-radius: 18px;
+}
+
+.session-card-main:focus-visible,
+.session-card-action:focus-visible,
+.role-toolbar .ghost-button:focus-visible,
+.session-sidebar-toolbar .ghost-button:focus-visible,
+.session-sidebar-toolbar .primary-button:focus-visible,
+.composer-action-buttons .ghost-button:focus-visible,
+.composer-action-buttons .primary-button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(113, 146, 132, 0.12);
+}
+
+.role-preview,
+.role-editor {
+    transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.role-preview-empty {
+    background: linear-gradient(135deg, rgba(255, 252, 246, 0.92), rgba(244, 249, 245, 0.72));
+    border-style: dashed;
+}
+
+.role-preview-empty .role-preview-content {
+    color: var(--color-text-faint);
+}
+
+.role-preview-content {
+    max-height: 320px;
+    overflow: auto;
+    padding-right: 0.15rem;
+}
+
+.messages {
+    padding-bottom: 0.2rem;
+}
+
+.message {
+    position: relative;
+}
+
+.message-user {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.message-assistant {
+    backdrop-filter: blur(10px);
+}
+
+.message-meta {
+    font-size: 0.76rem;
+    letter-spacing: 0.12em;
+}
+
+.message-system {
+    border-style: solid;
+}
+
+.composer {
+    position: relative;
+}
+
+#prompt-input {
+    transition:
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        background var(--transition-fast),
+        transform var(--transition-fast);
+}
+
+#prompt-input:focus {
+    transform: translateY(-1px);
+}
+
+.composer-images:empty {
+    display: none;
+}
+
+.composer-action-buttons .primary-button {
+    min-width: 108px;
+}
+
+.relic-card,
+.emotion-badge,
+.dyad-badge,
+.emotion-phase,
+.emotion-need,
+.intensity-indicator {
+    backdrop-filter: blur(8px);
+}
+
 /* 响应式：优先保证笔记本与常见演示分辨率。 */
 @media (max-width: 1440px) {
     .page-shell {
