@@ -4,6 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from ..auth.models import AuthUser
 from ..models import LLMMessage
 from ..orchestration import (
     DEFAULT_ROUTE_MODE,
@@ -53,6 +54,26 @@ class SetCurrentSessionRequest(BaseModel):
 
 class RenameSessionRequest(BaseModel):
     name: str
+
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class AuthUserModel(BaseModel):
+    id: int
+    username: str
+    created_at: str
+
+
+class LogoutResponse(BaseModel):
+    logged_out: bool = True
 
 
 class SetSessionRoleRequest(BaseModel):
@@ -300,3 +321,11 @@ def session_detail_model_from_session(session: ChatSession) -> SessionDetailMode
 
 def channel_config_payload(config: dict[str, Any]) -> dict[str, Any]:
     return dict(config)
+
+
+def auth_user_model_from_entity(user: AuthUser) -> AuthUserModel:
+    return AuthUserModel(
+        id=user.id,
+        username=user.username,
+        created_at=user.created_at.isoformat(),
+    )

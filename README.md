@@ -232,6 +232,14 @@ python -m echobot gateway
 
 访问 `http://localhost:8000/web` 打开 Web Console。
 
+### Web 前端入口说明
+
+- `http://localhost:8000/login`
+  登录与注册共用同一入口页，登录状态通过 `HttpOnly Cookie` 维持。
+- `http://localhost:8000/web`
+  聊天工作台入口；未登录访问时会自动跳转回登录页。
+- 前端当前采用统一的东方低饱和设计语言，重点覆盖登录页、聊天主界面、会话侧栏、角色侧栏、消息区与输入区，适合课程项目展示与答辩演示。
+
 ---
 
 ## 工作原理
@@ -576,3 +584,80 @@ Echoing_Through_Millennia/
 ## 许可证
 
 本项目仅用于学习和研究目的。
+
+---
+
+## 第一阶段：登录系统
+
+当前仓库已经补上基于 `FastAPI + 原生 HTML/CSS/JS + PostgreSQL` 的最小可运行登录系统，登录态通过 **HttpOnly Cookie** 维护，不使用 JWT。
+
+### 已实现能力
+
+- 注册：`POST /api/auth/register`
+- 登录：`POST /api/auth/login`
+- 退出登录：`POST /api/auth/logout`
+- 当前用户：`GET /api/auth/me`
+- 未登录访问 `/web` 自动跳转到 `/login`
+- 登录成功后进入原聊天页
+
+### 启动方式
+
+先启动 PostgreSQL：
+
+```bash
+docker compose -f docker/docker-compose.dev.yml up -d postgres
+```
+
+再启动 Web 服务：
+
+```bash
+python -m echobot app --host 127.0.0.1 --port 8000
+```
+
+浏览器访问：
+
+```text
+http://127.0.0.1:8000/login
+http://127.0.0.1:8000/web
+```
+
+### 登录测试步骤
+
+1. 打开 `/web`，应自动跳转到 `/login`
+2. 在登录页先注册新用户
+3. 注册成功后应自动进入聊天页
+4. 打开聊天页右上角用户信息，确认当前登录用户名正确
+5. 点击退出登录后，再访问 `/api/auth/me` 应返回 `401`
+
+### 最小用户隔离范围
+
+当前第一阶段已经做到：
+
+- 聊天会话按登录用户隔离
+- 会话列表按登录用户隔离
+- 当前会话指针按登录用户隔离
+- Web 控制台上传的 Live2D 素材与舞台背景按登录用户隔离
+
+当前第一阶段尚未隔离：
+
+- 角色卡文件
+- 渠道配置
+- 心跳与调度配置
+- `delegated_ack_enabled` 这类全局运行时开关
+
+### 自动化测试
+
+第一阶段提供了一个最小集成测试，覆盖：
+
+- 注册
+- 登录态查询
+- 未登录访问 `/web` 跳转
+- 登录后进入聊天页
+- 退出登录
+- 两个用户的会话列表隔离
+
+运行命令：
+
+```bash
+python -m unittest tests.test_login_flow
+```

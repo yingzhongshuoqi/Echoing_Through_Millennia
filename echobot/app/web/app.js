@@ -17,6 +17,7 @@ import {
     initializeMessageInteractions,
     removeMessage,
     scheduleMessagesScrollToBottom,
+    showMessagesEmptyState,
     updateMessage,
 } from "./modules/messages.js";
 import { createRolesModule } from "./modules/roles.js";
@@ -79,6 +80,7 @@ const sessions = createSessionsModule({
     formatTimestamp: formatTimestamp,
     normalizeSessionName: normalizeSessionName,
     requestJson: requestJson,
+    showMessagesEmptyState: showMessagesEmptyState,
     speakText: tts.speakText,
     setRunStatus: setRunStatus,
     stopSpeechPlayback: tts.stopSpeechPlayback,
@@ -141,11 +143,16 @@ async function initializePage() {
     layout.restoreStageBackgroundPanelState();
     layout.restoreStageEffectsPanelState();
     layout.handleSettingsPanelToggle();
-    live2d.setStageMessage("正在加载 Live2D 模型…");
-    addSystemMessage("正在连接 EchoBot…");
+    live2d.setStageMessage("正在载入舞台模型…");
+    addSystemMessage("正在与 EchoBot 建立连接…");
 
     try {
-        const config = await requestJson("/api/web/config");
+        // 聊天页初始化前先拿当前登录用户，便于展示登录状态与退出入口。
+        const [currentUser, config] = await Promise.all([
+            requestJson("/api/auth/me"),
+            requestJson("/api/web/config"),
+        ]);
+        updateCurrentUser(currentUser);
         UI_STATE.config = config;
         layout.applyRuntimeConfig(config.runtime);
         const activeLive2DConfig = live2d.applyConfigToUI(config);
@@ -162,7 +169,7 @@ async function initializePage() {
         traces.resetTracePanel();
 
         setConnectionState("ready", "已连接");
-        setRunStatus("准备就绪");
+        setRunStatus("可以开始对话了");
         setActiveBackgroundJob("");
     } catch (error) {
         console.error(error);
@@ -186,6 +193,12 @@ function addSliderResetOnAltClick(element, onReset) {
 function wireBasicEvents() {
     const form = document.getElementById("chat-form");
     form.addEventListener("submit", chat.handleChatSubmit);
+
+    if (DOM.logoutButton) {
+        DOM.logoutButton.addEventListener("click", () => {
+            void handleLogout();
+        });
+    }
 
     DOM.promptInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter" && !event.shiftKey) {
@@ -512,6 +525,8 @@ function setChatBusy(isBusy) {
     UI_STATE.chatBusy = isBusy;
     if (DOM.sendButton) {
         DOM.sendButton.disabled = isBusy;
+        DOM.sendButton.textContent = isBusy ? "生成中…" : "发送";
+        DOM.sendButton.setAttribute("aria-busy", String(isBusy));
     }
     if (DOM.composerImageButton) {
         DOM.composerImageButton.disabled = isBusy || Boolean(UI_STATE.activeChatJobId);
@@ -547,10 +562,12 @@ function setActiveBackgroundJob(jobId) {
 function setConnectionState(kind, text) {
     DOM.connectionBadge.className = `status-badge status-${kind}`;
     DOM.connectionBadge.textContent = text;
+    DOM.connectionBadge.dataset.state = kind;
 }
 
 function setRunStatus(text) {
     DOM.runStatus.textContent = text;
+    DOM.runStatus.dataset.tone = inferStatusTone(text);
 }
 
 function updateComposerBackgroundJobState() {
@@ -567,6 +584,9 @@ function updateComposerBackgroundJobState() {
     }
     if (DOM.composerStatusBanner) {
         DOM.composerStatusBanner.hidden = !backgroundJobRunning;
+        DOM.composerStatusBanner.textContent = backgroundJobRunning
+            ? "后台任务仍在继续，这里会暂时锁定输入。你可以等待片刻，或点击上方“停止任务”。"
+            : "";
     }
     if (DOM.stopAgentButton) {
         DOM.stopAgentButton.disabled = !backgroundJobRunning;
@@ -583,4 +603,51 @@ function updateComposerBackgroundJobState() {
     // Keep the latest reply visible when the composer height changes.
     scheduleMessagesScrollToBottom();
     chat.refreshComposerImages();
+}
+
+function updateCurrentUser(user) {
+    UI_STATE.currentUser = user || null;
+    if (DOM.userLabel) {
+        DOM.userLabel.textContent = user && user.username
+            ? `当前账号：${user.username}`
+            : "未登录";
+    }
+}
+
+async function handleLogout() {
+    const defaultLabel = DOM.logoutButton ? DOM.logoutButton.textContent : "";
+    try {
+        if (DOM.logoutButton) {
+            DOM.logoutButton.disabled = true;
+            DOM.logoutButton.textContent = "退出中…";
+        }
+        await requestJson("/api/auth/logout", {
+            method: "POST",
+        });
+    } catch (error) {
+        console.error(error);
+    } finally {
+        if (DOM.logoutButton) {
+            DOM.logoutButton.disabled = false;
+            DOM.logoutButton.textContent = defaultLabel;
+        }
+        window.location.assign("/login");
+    }
+}
+
+function inferStatusTone(text) {
+    const value = String(text || "").trim();
+    if (!value) {
+        return "idle";
+    }
+    if (/(失败|错误|异常|超时|中断)/.test(value)) {
+        return "error";
+    }
+    if (/(完成|就绪|成功|已连接|已加载|已切换|已保存|已新建|已删除)/.test(value)) {
+        return "success";
+    }
+    if (/(正在|加载|生成|请求|处理中|连接|刷新|保存|停止)/.test(value)) {
+        return "loading";
+    }
+    return "idle";
 }

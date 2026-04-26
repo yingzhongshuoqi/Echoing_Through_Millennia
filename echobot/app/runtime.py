@@ -15,6 +15,7 @@ from ..gateway import (
 from ..runtime.bootstrap import RuntimeContext, RuntimeOptions, build_runtime_context
 from ..runtime.session_service import SessionLifecycleService
 from ..tts import TTSService, build_default_tts_service
+from .services.auth import AuthService
 from .services.chat import ChatService
 from .services.channels import ChannelService
 from .services.relic_service import RelicService
@@ -59,6 +60,7 @@ class AppRuntime:
         self.role_service: RoleService | None = None
         self.channel_service: ChannelService | None = None
         self.web_console_service: WebConsoleService | None = None
+        self.auth_service: AuthService | None = None
         self.tts_service: TTSService | None = None
         self.asr_service: ASRService | None = None
         self._started = False
@@ -111,6 +113,9 @@ class AppRuntime:
             get_status=self.channel_status,
             reload_channels=self.reload_channels,
         )
+        # 先初始化认证服务，后续登录接口会复用同一个运行时实例。
+        self.auth_service = AuthService()
+        await self.auth_service.startup()
         self.asr_service = self._asr_service_builder(self.context.workspace)
         self.tts_service = self._tts_service_builder(self.context.workspace)
         self.web_console_service = WebConsoleService(
@@ -150,6 +155,8 @@ class AppRuntime:
             await self.tts_service.close()
         if self.asr_service is not None:
             await self.asr_service.close()
+        if self.auth_service is not None:
+            await self.auth_service.shutdown()
 
         from ..relic_knowledge.db import close_relic_db
         await close_relic_db()

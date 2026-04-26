@@ -9,6 +9,7 @@ export const TTS_STREAM_MAX_SEGMENT_LENGTH = 140;
 
 export const UI_STATE = {
     config: null,
+    currentUser: null,
     asrConfig: null,
     pixiApp: null,
     live2dModel: null,
@@ -112,6 +113,7 @@ export const DOM = {
     chatPanel: document.getElementById("chat-panel"),
     connectionBadge: document.getElementById("connection-badge"),
     delegatedAckCheckbox: document.getElementById("delegated-ack-checkbox"),
+    logoutButton: document.getElementById("logout-button"),
     composerImageButton: document.getElementById("composer-image-button"),
     composerImageInput: document.getElementById("composer-image-input"),
     composerImages: document.getElementById("composer-images"),
@@ -233,5 +235,6 @@ export const DOM = {
     stopAudioButton: document.getElementById("stop-audio-button"),
     ttsDetail: document.getElementById("tts-detail"),
     ttsProviderSelect: document.getElementById("tts-provider-select"),
+    userLabel: document.getElementById("user-label"),
     voiceSelect: document.getElementById("voice-select"),
 };

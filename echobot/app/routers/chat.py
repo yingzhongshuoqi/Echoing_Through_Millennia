@@ -9,7 +9,7 @@ from fastapi.responses import StreamingResponse
 
 from ...images import normalize_image_data_urls_to_jpeg
 from ..schemas import ChatJobResponse, ChatJobTraceResponse, ChatRequest, ChatResponse
-from ..state import get_app_runtime
+from ..state import get_user_scope
 
 
 router = APIRouter(tags=["chat"])
@@ -18,11 +18,11 @@ router = APIRouter(tags=["chat"])
 @router.post("/chat", response_model=ChatResponse)
 async def run_chat(
     request: ChatRequest,
-    runtime=Depends(get_app_runtime),
+    user_scope=Depends(get_user_scope),
 ) -> ChatResponse:
     try:
         image_urls = await _normalize_chat_images(request)
-        result = await runtime.chat_service.run_prompt(
+        result = await user_scope.chat_service.run_prompt(
             request.session_name,
             request.prompt,
             image_urls=image_urls,
@@ -51,7 +51,7 @@ async def run_chat(
 @router.post("/chat/stream")
 async def run_chat_stream(
     request: ChatRequest,
-    runtime=Depends(get_app_runtime),
+    user_scope=Depends(get_user_scope),
 ) -> StreamingResponse:
     queue: asyncio.Queue[bytes | None] = asyncio.Queue()
 
@@ -68,7 +68,7 @@ async def run_chat_stream(
     async def produce() -> None:
         try:
             image_urls = await _normalize_chat_images(request)
-            result = await runtime.chat_service.run_prompt_stream(
+            result = await user_scope.chat_service.run_prompt_stream(
                 request.session_name,
                 request.prompt,
                 image_urls=image_urls,
@@ -143,9 +143,9 @@ async def run_chat_stream(
 @router.get("/chat/jobs/{job_id}", response_model=ChatJobResponse)
 async def get_chat_job(
     job_id: str,
-    runtime=Depends(get_app_runtime),
+    user_scope=Depends(get_user_scope),
 ) -> ChatJobResponse:
-    job = await runtime.chat_service.get_job(job_id)
+    job = await user_scope.chat_service.get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")
 
@@ -165,9 +165,9 @@ async def get_chat_job(
 @router.get("/chat/jobs/{job_id}/trace", response_model=ChatJobTraceResponse)
 async def get_chat_job_trace(
     job_id: str,
-    runtime=Depends(get_app_runtime),
+    user_scope=Depends(get_user_scope),
 ) -> ChatJobTraceResponse:
-    job, events = await runtime.chat_service.get_job_trace(job_id)
+    job, events = await user_scope.chat_service.get_job_trace(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")
 
@@ -183,9 +183,9 @@ async def get_chat_job_trace(
 @router.post("/chat/jobs/{job_id}/cancel", response_model=ChatJobResponse)
 async def cancel_chat_job(
     job_id: str,
-    runtime=Depends(get_app_runtime),
+    user_scope=Depends(get_user_scope),
 ) -> ChatJobResponse:
-    job = await runtime.chat_service.cancel_job(job_id)
+    job = await user_scope.chat_service.cancel_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")
 

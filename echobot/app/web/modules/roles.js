@@ -105,7 +105,7 @@ export function createRolesModule(deps) {
         if (roleSummaries.length === 0) {
             const option = document.createElement("option");
             option.value = "default";
-            option.textContent = "default";
+            option.textContent = "暂无角色";
             DOM.roleSelect.appendChild(option);
             DOM.roleSelect.disabled = true;
             return;
@@ -138,6 +138,13 @@ export function createRolesModule(deps) {
 
     function renderCurrentRoleCard() {
         const roleCard = UI_STATE.currentRoleCard;
+
+        if (DOM.rolePreview) {
+            DOM.rolePreview.classList.toggle(
+                "role-preview-empty",
+                !roleCard || !String(roleCard.prompt || "").trim(),
+            );
+        }
 
         if (DOM.rolePromptPreview) {
             DOM.rolePromptPreview.textContent = roleCard && roleCard.prompt

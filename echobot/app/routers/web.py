@@ -18,7 +18,7 @@ from ..schemas import (
     WebStageConfigModel,
 )
 from ..services.web_console import Live2DUploadFile
-from ..state import get_app_runtime
+from ..state import get_app_runtime, get_current_user, get_user_scope
 
 
 router = APIRouter(tags=["web"])
@@ -26,19 +26,20 @@ router = APIRouter(tags=["web"])
 
 @router.get("/web/config", response_model=WebConfigResponse)
 async def get_web_config(
+    user_scope=Depends(get_user_scope),
     runtime=Depends(get_app_runtime),
 ) -> WebConfigResponse:
-    if runtime.session_service is None or runtime.context is None:
+    if runtime.context is None:
         raise HTTPException(status_code=503, detail="EchoBot runtime is not ready")
 
-    current_session = await runtime.session_service.load_current_session()
-    role_name = await runtime.context.coordinator.current_role_name(
+    current_session = await user_scope.session_service.load_current_session()
+    role_name = await user_scope.chat_service.current_role_name(
         current_session.name,
     )
-    route_mode = await runtime.context.coordinator.current_route_mode(
+    route_mode = await user_scope.chat_service.current_route_mode(
         current_session.name,
     )
-    payload = await runtime.web_console_service.build_frontend_config(
+    payload = await user_scope.web_console_service.build_frontend_config(
         session_name=current_session.name,
         role_name=role_name,
         route_mode=route_mode,
@@ -50,6 +51,7 @@ async def get_web_config(
 @router.patch("/web/runtime", response_model=WebRuntimeConfigModel)
 async def update_web_runtime_config(
     request: UpdateWebRuntimeConfigRequest,
+    _current_user=Depends(get_current_user),
     runtime=Depends(get_app_runtime),
 ) -> WebRuntimeConfigModel:
     if runtime.context is None:
@@ -67,10 +69,10 @@ async def update_web_runtime_config(
 @router.get("/web/live2d/{asset_path:path}")
 async def get_live2d_asset(
     asset_path: str,
-    runtime=Depends(get_app_runtime),
+    user_scope=Depends(get_user_scope),
 ) -> FileResponse:
     try:
-        asset_file = runtime.web_console_service.resolve_live2d_asset(asset_path)
+        asset_file = user_scope.web_console_service.resolve_live2d_asset(asset_path)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except FileNotFoundError as exc:
@@ -81,10 +83,10 @@ async def get_live2d_asset(
 @router.get("/web/stage/backgrounds/{asset_path:path}")
 async def get_stage_background_asset(
     asset_path: str,
-    runtime=Depends(get_app_runtime),
+    user_scope=Depends(get_user_scope),
 ) -> FileResponse:
     try:
-        asset_file = runtime.web_console_service.resolve_stage_background_asset(asset_path)
+        asset_file = user_scope.web_console_service.resolve_stage_background_asset(asset_path)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except FileNotFoundError as exc:
@@ -95,11 +97,11 @@ async def get_stage_background_asset(
 @router.post("/web/stage/backgrounds", response_model=WebStageConfigModel)
 async def upload_stage_background(
     image: UploadFile = File(...),
-    runtime=Depends(get_app_runtime),
+    user_scope=Depends(get_user_scope),
 ) -> WebStageConfigModel:
     try:
         file_bytes = await image.read()
-        payload = await runtime.web_console_service.save_stage_background(
+        payload = await user_scope.web_console_service.save_stage_background(
             filename=image.filename or "",
             content_type=image.content_type,
             file_bytes=file_bytes,
@@ -114,7 +116,7 @@ async def upload_stage_background(
 async def upload_live2d_directory(
     files: list[UploadFile] = File(...),
     relative_paths: list[str] = Form(...),
-    runtime=Depends(get_app_runtime),
+    user_scope=Depends(get_user_scope),
 ) -> WebLive2DConfigModel:
     try:
         if len(files) != len(relative_paths):
@@ -129,7 +131,7 @@ async def upload_live2d_directory(
                 )
             )
 
-        payload = await runtime.web_console_service.save_live2d_directory(
+        payload = await user_scope.web_console_service.save_live2d_directory(
             uploaded_files=uploaded_files,
         )
     except ValueError as exc:
@@ -141,16 +143,16 @@ async def upload_live2d_directory(
 @router.get("/web/tts/voices", response_model=TTSVoicesResponse)
 async def get_tts_voices(
     provider: str | None = Query(default=None),
-    runtime=Depends(get_app_runtime),
+    user_scope=Depends(get_user_scope),
 ) -> TTSVoicesResponse:
     try:
-        voices = await runtime.web_console_service.tts_service.list_voices(provider)
+        voices = await user_scope.web_console_service.tts_service.list_voices(provider)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
-    provider_name = provider or runtime.web_console_service.tts_service.default_provider
+    provider_name = provider or user_scope.web_console_service.tts_service.default_provider
     return TTSVoicesResponse(
         provider=provider_name,
         voices=[
@@ -169,14 +171,14 @@ async def get_tts_voices(
 @router.post("/web/tts")
 async def synthesize_tts(
     request: TTSRequest,
-    runtime=Depends(get_app_runtime),
+    user_scope=Depends(get_user_scope),
 ) -> Response:
     text = request.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="TTS text must not be empty")
 
     try:
-        speech = await runtime.web_console_service.tts_service.synthesize(
+        speech = await user_scope.web_console_service.tts_service.synthesize(
             text=text,
             provider_name=request.provider,
             voice=request.voice,
@@ -205,8 +207,10 @@ async def synthesize_tts(
 
 
 @router.get("/web/asr/status", response_model=WebASRConfigModel)
-async def get_asr_status(runtime=Depends(get_app_runtime)) -> WebASRConfigModel:
-    snapshot = await runtime.web_console_service.asr_service.status_snapshot()
+async def get_asr_status(
+    user_scope=Depends(get_user_scope),
+) -> WebASRConfigModel:
+    snapshot = await user_scope.web_console_service.asr_service.status_snapshot()
     return WebASRConfigModel(
         available=snapshot.available,
         state=snapshot.state,
@@ -222,14 +226,14 @@ async def get_asr_status(runtime=Depends(get_app_runtime)) -> WebASRConfigModel:
 @router.post("/web/asr", response_model=ASRTranscriptionResponse)
 async def transcribe_audio(
     request: Request,
-    runtime=Depends(get_app_runtime),
+    user_scope=Depends(get_user_scope),
 ) -> ASRTranscriptionResponse:
     audio_bytes = await request.body()
     if not audio_bytes:
         raise HTTPException(status_code=400, detail="ASR audio body must not be empty")
 
     try:
-        result = await runtime.web_console_service.asr_service.transcribe_wav_bytes(audio_bytes)
+        result = await user_scope.web_console_service.asr_service.transcribe_wav_bytes(audio_bytes)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
@@ -243,6 +247,18 @@ async def asr_websocket(websocket: WebSocket) -> None:
     runtime = getattr(websocket.app.state, "runtime", None)
     if runtime is None or runtime.web_console_service is None:
         await websocket.close(code=1011, reason="EchoBot runtime is not ready")
+        return
+
+    # WebSocket 不能直接复用 Request 依赖，这里手动校验登录 Cookie。
+    auth_service = getattr(runtime, "auth_service", None)
+    if auth_service is None or not auth_service.ready:
+        await websocket.close(code=1011, reason="Authentication service is not ready")
+        return
+
+    session_token = websocket.cookies.get(auth_service.cookie_name, "").strip()
+    current_user = await auth_service.get_user_by_token(session_token)
+    if current_user is None:
+        await websocket.close(code=4401, reason="Unauthorized")
         return
 
     await websocket.accept()

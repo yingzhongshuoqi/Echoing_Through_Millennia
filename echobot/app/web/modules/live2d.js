@@ -305,7 +305,7 @@ export function createLive2DModule(deps) {
             DOM.routeModeSelect.value = UI_STATE.currentRouteMode;
         }
 
-        DOM.sessionLabel.textContent = `会话: ${rememberedSessionName}`;
+        DOM.sessionLabel.textContent = `会话：${rememberedSessionName}`;
         renderLive2DModelOptions(live2dModelOptions, currentLive2DConfig.selection_key);
         renderStageBackgroundOptions(stageConfig, stageBackgroundKey);
         applyStageBackgroundByKey(stageConfig, stageBackgroundKey);
@@ -2095,7 +2095,7 @@ export function createLive2DModule(deps) {
         }
 
         const loadToken = ++UI_STATE.live2dLoadToken;
-        setStageMessage("正在加载 Live2D 模型…");
+        setStageMessage("正在载入舞台模型…");
 
         try {
             const model = await window.PIXI.live2d.Live2DModel.from(live2dConfig.model_url, {
